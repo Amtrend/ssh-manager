@@ -1,0 +1,54 @@
+{{template "base" .}}
+{{define "content"}}
+
+<div class="keys-container">
+    <h1>SSH Keys</h1>
+
+    <div class="keys-list">
+        {{range .Keys}}
+        <div class="key-block" id="key-{{.ID}}">
+            <strong>{{.Name}}</strong>
+            <div class="actions">
+                <button onclick="openEditModal({{.ID}})">Edit</button>
+                <button onclick="openDeleteModal('{{.Name}}', {{.ID}})">Delete</button>
+            </div>
+        </div>
+        {{else}}
+        <p>No keys found.</p>
+        {{end}}
+    </div>
+
+    <button class="add-btn" onclick="openAddModal()">Add Key</button>
+
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('deleteModal')">&times;</span>
+            <h3>Delete Key</h3>
+            <p>Type <strong><span id="targetKeyName"></span></strong> to confirm:</p>
+            <input type="text" id="confirmName" placeholder="Key Name">
+            <button id="confirmDeleteButton" disabled onclick="confirmDelete()">Delete Forever</button>
+        </div>
+    </div>
+
+    <div id="keyModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('keyModal')">&times;</span>
+            <h3 id="modalTitle">Key Details</h3>
+            <form id="keyForm">
+                <input type="hidden" id="csrf_token" value="{{.CSRFToken}}">
+                <label>Name:</label>
+                <input type="text" id="keyName" required>
+                
+                <label>Private Key:</label>
+                <textarea id="privateKey" rows="6" required></textarea>
+                <p id="partialKeyHint" style="color: #888; font-size: 0.85em; margin-top: 5px;">
+                    Key is masked for security. To update it, paste a new private key above. To keep the current one, leave this field as is.
+                </p>
+
+                <button type="submit">Save</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{end}}

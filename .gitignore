@@ -1,0 +1,19 @@
+# Binaries
+ssh-manager
+ssh-manager-linux-amd64
+ssh-manager-windows-amd64.exe
+
+# Data and secrets
+.env
+data/
+db_data/
+*.db
+notes.txt
+docker-compose.yml
+
+# Logs
+*.log
+
+# IDE
+.idea/
+.vscode/

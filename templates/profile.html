@@ -1,0 +1,32 @@
+{{template "base" .}}
+{{define "content"}}
+
+<div class="profile-container">
+    <h1>Profile</h1>
+
+    <form id="usernameForm">
+        <input type="hidden" id="csrf_token_username" value="{{.CSRFToken}}">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" value="{{.Username}}" required>
+        <button type="submit">Update Username</button>
+    </form>
+
+    <button onclick="openPasswordModal()">Change Password</button>
+
+    <div id="passwordModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closePasswordModal()">&times;</span>
+            <h3>Change Password</h3>
+            <form id="passwordForm">
+                <input type="hidden" id="csrf_token_password" value="{{.CSRFToken}}">
+                <label for="newPassword">New Password:</label>
+                <input type="password" id="newPassword" name="new_password" required>
+                <label for="confirmPassword">Confirm Password:</label>
+                <input type="password" id="confirmPassword" name="confirm_password" required>
+                <button type="submit">Save</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{end}}

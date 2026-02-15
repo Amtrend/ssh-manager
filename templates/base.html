@@ -1,0 +1,53 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSH Manager - {{.Title}}</title>
+    <link rel="icon" type="image/x-icon" href="/static/img/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/static/img/favicon.svg">
+    <link rel="icon" type="image/png" href="/static/img/favicon.png">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+    <script src="/static/js/script.js" defer></script>
+</head>
+<body>
+
+<div class="container">
+    {{ if .ShowMenu }}
+    <div class="menu">
+        <a href="/">Home</a>
+        <a href="/keys">Keys</a>
+        <a href="/profile">Profile</a>
+        <button onclick="openLogoutModal()">Logout</button>
+    </div>
+    {{ end }}
+
+    {{block "content" .}}
+    {{end}}
+</div>
+
+<div id="errorModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeErrorModal()">&times;</span>
+        <h3>Error</h3>
+        <p id="errorMessage"></p>
+    </div>
+</div>
+
+<div id="logoutModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeLogoutModal()">&times;</span>
+        <h3>Logout</h3>
+        <p>Are you sure you want to log out?</p>
+        <button onclick="confirmLogout()">Yes</button>
+        <button onclick="closeLogoutModal()">No</button>
+    </div>
+</div>
+
+</body>
+</html>
+{{end}}
