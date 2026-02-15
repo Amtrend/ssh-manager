@@ -498,24 +498,33 @@ window.toggleSelectMode = function(id) {
 
 if (window.visualViewport) {
     const adjustMobileTerminal = () => {
-        // Работаем только если экран мобильный
+        // 1. Проверяем, что мы на мобилке
         if (window.innerWidth <= 768) {
-            const viewport = window.visualViewport;
             const activeWindows = document.querySelectorAll('.term-window');
             
-            activeWindows.forEach(win => {
-                // Устанавливаем высоту окна равной высоте ВИДИМОЙ области
-                win.style.height = `${viewport.height}px`;
-                win.style.top = `${viewport.offsetTop}px`;
-            });
-            
-            // Прокручиваем страницу в 0, чтобы сбить системный скролл
-            window.scrollTo(0, 0);
-            
-            // Обновляем xterm для всех активных терминалов
-            Object.values(activeTerminals).forEach(data => {
-                if (data.fitAddon) data.fitAddon.fit();
-            });
+            // 2. Срабатываем ТОЛЬКО если есть открытые терминалы
+            if (activeWindows.length > 0) {
+                const viewport = window.visualViewport;
+                
+                activeWindows.forEach(win => {
+                    win.style.height = `${viewport.height}px`;
+                    win.style.top = `${viewport.offsetTop}px`;
+                });
+
+                // 3. Скроллим в 0 только если фокус НЕ в обычном инпуте (логин/пароль)
+                const activeEl = document.activeElement;
+                const isInput = activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA';
+                const isTermInput = activeEl.classList.contains('xterm-helper-textarea');
+
+                if (!isInput || isTermInput) {
+                    window.scrollTo(0, 0);
+                }
+
+                // Обновляем xterm
+                Object.values(activeTerminals).forEach(data => {
+                    if (data.fitAddon) data.fitAddon.fit();
+                });
+            }
         }
     };
 
