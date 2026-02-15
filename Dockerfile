@@ -11,7 +11,9 @@ RUN go mod download
 COPY . .
 
 # Building a statically compiled binary
-RUN CGO_ENABLED=0 GOOS=linux go build -o ssh-manager ./cmd/server
+ARG TARGETOS
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o ssh-manager ./cmd/server
 
 FROM alpine:latest
 
@@ -27,6 +29,10 @@ COPY --from=builder /app/static ./static
 
 # Create a folder for the SQLite database
 RUN mkdir ./data
+
+LABEL org.opencontainers.image.source="https://github.com/${{ github.repository_owner }}/ssh-manager"
+LABEL org.opencontainers.image.description="Lightweight SSH Connection Manager"
+LABEL org.opencontainers.image.licenses="MIT"
 
 EXPOSE 8080
 
