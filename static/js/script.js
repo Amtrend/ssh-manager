@@ -495,3 +495,30 @@ window.toggleSelectMode = function(id) {
         setTimeout(() => { data.term.focus(); data.term.scrollToBottom(); }, 50);
     }
 };
+
+if (window.visualViewport) {
+    const adjustMobileTerminal = () => {
+        // Работаем только если экран мобильный
+        if (window.innerWidth <= 768) {
+            const viewport = window.visualViewport;
+            const activeWindows = document.querySelectorAll('.term-window');
+            
+            activeWindows.forEach(win => {
+                // Устанавливаем высоту окна равной высоте ВИДИМОЙ области
+                win.style.height = `${viewport.height}px`;
+                win.style.top = `${viewport.offsetTop}px`;
+            });
+            
+            // Прокручиваем страницу в 0, чтобы сбить системный скролл
+            window.scrollTo(0, 0);
+            
+            // Обновляем xterm для всех активных терминалов
+            Object.values(activeTerminals).forEach(data => {
+                if (data.fitAddon) data.fitAddon.fit();
+            });
+        }
+    };
+
+    window.visualViewport.addEventListener('resize', adjustMobileTerminal);
+    window.visualViewport.addEventListener('scroll', adjustMobileTerminal);
+}

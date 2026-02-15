@@ -406,7 +406,7 @@ button[onclick="openPasswordModal()"] {
 }
 
 @media screen and (max-width: 768px) {
-    .term-window {
+    /* .term-window {
         width: 100vw !important;
         left: 0 !important;
         top: 0 !important;
@@ -417,6 +417,21 @@ button[onclick="openPasswordModal()"] {
         flex-direction: column !important;
         z-index: 9999 !important;
         background: #1e1e1e;
+    } */
+    .term-window {
+        width: 100vw !important;
+        left: 0 !important;
+        top: 0 !important;
+        /* Убираем 100vh, высоту будет ставить JS через visualViewport */
+        height: 100% !important; 
+        margin: 0 !important;
+        border: none !important;
+        position: fixed !important;
+        display: flex !important;
+        flex-direction: column !important;
+        z-index: 9999 !important;
+        /* Убираем лишние трансформации, чтобы не мешать позиционированию */
+        transform: none !important; 
     }
 
     .term-header {
@@ -445,5 +460,8 @@ button[onclick="openPasswordModal()"] {
 
     .xterm-helper-textarea {
         display: block !important;
+        fixed: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
     }
 }
