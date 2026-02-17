@@ -280,7 +280,7 @@ window.connectToHost = function(id, name) {
             <div class="term-toolbar-group">
                 <button class="term-btn term-btn-arrow" onclick="sendSpecialKey(${id}, 'Left')">&larr;</button>
                 <button class="term-btn term-btn-arrow" onclick="sendSpecialKey(${id}, 'Up')">&uarr;</button>
-                <button class="term-btn term-btn-arrow" onclick="sendSpecialKey(${id}, 'Down')">&uarr;</button>
+                <button class="term-btn term-btn-arrow" onclick="sendSpecialKey(${id}, 'Down')">&darr;</button>
                 <button class="term-btn term-btn-arrow" onclick="sendSpecialKey(${id}, 'Right')">&rarr;</button>
             </div>
             <div class="term-divider"></div>
@@ -324,9 +324,15 @@ window.connectToHost = function(id, name) {
     };
     activeTerminals[id].resizeObserver.observe(termWrapper);
 
+    term.onData(data => { 
+        const currentWs = activeTerminals[id]?.ws;
+        if (currentWs && currentWs.readyState === WebSocket.OPEN) {
+            currentWs.send(data);
+        }
+    });
+
     ws.onopen = () => {
         updateStatusBtn(id, true);
-        term.onData(data => { if (ws.readyState === WebSocket.OPEN) ws.send(data); });
     };
 
     ws.onmessage = e => {
@@ -338,7 +344,15 @@ window.connectToHost = function(id, name) {
         term.write(e.data);
     };
 
-    ws.onclose = () => updateStatusBtn(id, false);
+
+    ws.onclose = () => {
+        updateStatusBtn(id, false);
+        // If the client did not close the terminal themselves,
+        // we try to restore the connection.
+        if (activeTerminals[id] && !activeTerminals[id].explicitlyClosed) {
+            setTimeout(() => silentReconnect(id), 2000);
+        }
+    };
 
     makeDraggable(termWrapper, document.getElementById(`header-${id}`));
     makeResizable(termWrapper, id);
@@ -405,6 +419,9 @@ function updateStatusBtn(id, active) {
 window.closeTerminal = async function(id) {
     const data = activeTerminals[id];
     if (!data) return;
+
+    data.explicitlyClosed = true;
+
     updateStatusBtn(id, false);
     const csrfToken = document.getElementById('csrf_token')?.value;
     try {
@@ -416,6 +433,8 @@ window.closeTerminal = async function(id) {
     } catch (e) {}
     if (data.ws) data.ws.close();
     if (data.window) data.window.remove();
+    if (data.resizeObserver) data.resizeObserver.disconnect();
+
     delete activeTerminals[id];
 };
 
@@ -496,23 +515,92 @@ window.toggleSelectMode = function(id) {
     }
 };
 
-if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', () => {
-        const toolbar = document.querySelector('.term-toolbar');
-        if (!toolbar) return;
+window.visualViewport.addEventListener('resize', () => {
+    const toolbar = document.querySelector('.term-toolbar');
+    if (!toolbar) return;
 
-        const offset = window.innerHeight - window.visualViewport.height;
-        
-        if (offset > 50) {
-            toolbar.style.marginBottom = offset + 'px';
-            toolbar.style.display = 'flex';
-        } else {
-            toolbar.style.marginBottom = '0';
-        }
-        
-        Object.values(activeTerminals).forEach(t => {
-            t.fitAddon.fit();
+    const offset = window.innerHeight - window.visualViewport.height;
+    
+    // Use marginBottom only if the keyboard is really in the way.
+    if (offset > 50) {
+        toolbar.style.marginBottom = offset + 'px';
+    } else {
+        toolbar.style.marginBottom = '0';
+    }
+    
+    // Function for fitting the terminal (moved out to call twice).
+    const adjustTerminal = (t) => {
+        t.fitAddon.fit();
+        requestAnimationFrame(() => {
             t.term.scrollToBottom();
+            t.term.focus();
+            t.term.refresh(t.term.buffer.active.cursorY, t.term.buffer.active.cursorY);
+            
+            // We send the new dimensions to the server so that htop can re-render.
+            if (t.ws && t.ws.readyState === WebSocket.OPEN) {
+                t.ws.send(JSON.stringify({ 
+                    type: "resize", 
+                    cols: t.term.cols, 
+                    rows: t.term.rows 
+                }));
+            }
         });
+    };
+
+    Object.values(activeTerminals).forEach(t => {
+        // Works instantly
+        adjustTerminal(t);
+        
+        // It triggers after 300ms when the keyboard has reached the end.
+        setTimeout(() => adjustTerminal(t), 300);
     });
+});
+
+
+
+// Silent socket recovery function.
+function silentReconnect(id) {
+    const tData = activeTerminals[id];
+    if (!tData || tData.explicitlyClosed) return;
+    if (tData.ws && tData.ws.readyState <= 1) return;
+
+    console.log(`Reconnecting to host ${id}...`);
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const ws = new WebSocket(`${protocol}://${window.location.host}/ws/ssh?id=${id}`);
+
+    ws.onopen = () => {
+        console.log(`Restored ${id}`);
+        tData.ws = ws; // Replace the socket in object.
+        updateStatusBtn(id, true);
+        tData.fitAddon.fit();
+        ws.send(JSON.stringify({ type: "resize", cols: tData.term.cols, rows: tData.term.rows }));
+    };
+
+    ws.onmessage = e => {
+        if (e.data === "[STOPSESSION]") {
+            window.closeTerminal(id);
+            return;
+        }
+        tData.term.write(e.data);
+    };
+
+    ws.onclose = () => {
+        updateStatusBtn(id, false);
+        if (activeTerminals[id] && !activeTerminals[id].explicitlyClosed) {
+            setTimeout(() => silentReconnect(id), 5000);
+        }
+    };
 }
+
+// Checking when come back in the tab
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        Object.values(activeTerminals).forEach(t => {
+            // If the tab is active and the socket is dead, we initiate a reconnect.
+            const hostId = Object.keys(activeTerminals).find(key => activeTerminals[key] === t);
+            if (hostId && (!t.ws || t.ws.readyState >= 2)) {
+                silentReconnect(hostId);
+            }
+        });
+    }
+});
