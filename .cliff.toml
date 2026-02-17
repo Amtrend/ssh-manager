@@ -1,0 +1,33 @@
+[changelog]
+header = """
+# Changelog
+"""
+
+body = """
+{% for group, commits in commits | group_by(attribute="group") %}
+## {{ group }}
+
+{% for commit in commits %}
+- {{ commit.message | trim }}
+{% endfor %}
+
+{% endfor %}
+"""
+
+footer = """
+---
+**Full Changelog**: https://github.com/{{ repository.owner }}/{{ repository.name }}/compare/{{ previous.version }}...{{ version }}
+"""
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+
+commit_parsers = [
+  { message = "^feat", group = "🚀 Features" },
+  { message = "^fix", group = "🐛 Bug Fixes" },
+  { message = "^docs", group = "📝 Documentation" },
+  { message = "^chore", group = "🔧 Chores" }
+]
+
+tag_pattern = "v[0-9].*"

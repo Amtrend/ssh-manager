@@ -31,17 +31,21 @@ jobs:
           CGO_ENABLED=0 GOOS=windows GOARCH=amd64 \
           go build -o ssh-manager-windows-amd64.exe ./cmd/server
 
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: .cliff.toml
+          args: --latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build Changelog
         uses: softprops/action-gh-release@v2
         with:
+          body_path: CHANGELOG.md
           files: |
             ssh-manager-linux-amd64
             ssh-manager-windows-amd64.exe
-          generate_release_notes: true
-          body: |
-            Check out the binaries below. Full documentation is in the repository.
-
-            ---
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
