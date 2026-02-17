@@ -36,8 +36,6 @@ jobs:
         with:
           config: .cliff.toml
           args: --latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Changelog
         uses: softprops/action-gh-release@v2

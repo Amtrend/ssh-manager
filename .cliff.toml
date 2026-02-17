@@ -14,10 +14,6 @@ body = """
 {% endfor %}
 """
 
-footer = """
----
-**Full Changelog**: https://github.com/{{ env.GITHUB_REPOSITORY }}/compare/{{ previous.version }}...{{ version }}
-"""
 
 [git]
 conventional_commits = true
