@@ -1,0 +1,10 @@
+changelog:
+  categories:
+    - title: "🚀 New features"
+      committish: "feat:"
+    - title: "🐛 Corrections"
+      committish: "fix:"
+    - title: "🧰 Technical edits"
+      committish: "chore:"
+    - title: "📝 Documentation"
+      committish: "docs:"

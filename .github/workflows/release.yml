@@ -32,29 +32,16 @@ jobs:
           go build -o ssh-manager-windows-amd64.exe ./cmd/server
 
       - name: Build Changelog
-        id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v5
-        with:
-          configurationJson: |
-            {
-              "template": "# 🎉 What's new\n\n${CHANGELOG}\n\n### 🛠 Check out the binaries below. Full documentation is in the repository.",
-              "categories": [
-                { "title": "🚀 New features", "labels": [], "committish": "feat:" },
-                { "title": "🐛 Corrections", "labels": [], "committish": "fix:" },
-                { "title": "🧰 Technical edits", "labels": [], "committish": "chore:" },
-                { "title": "📝 Documentation", "labels": [], "committish": "docs:" }
-              ]
-            }
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             ssh-manager-linux-amd64
             ssh-manager-windows-amd64.exe
-          body: ${{steps.build_changelog.outputs.changelog}}
+          generate_release_notes: true
+          body: |
+            Check out the binaries below. Full documentation is in the repository.
+
+            ---
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
