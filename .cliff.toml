@@ -1,7 +1,4 @@
 [changelog]
-header = """
-# Changelog
-"""
 header = "# 🎉 Whats new\n"
 body = """
 {% for group, commits in commits | group_by(attribute="group") %}
