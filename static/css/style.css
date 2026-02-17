@@ -406,6 +406,14 @@ button[onclick="openPasswordModal()"] {
 }
 
 @media screen and (max-width: 768px) {
+    th, td {
+        padding: 10px 12px;
+    }
+
+    .std-btn-1:not(:last-child) {
+        margin-bottom: 12px;
+    }
+
     .term-window {
         width: 100vw !important;
         left: 0 !important;
@@ -417,9 +425,8 @@ button[onclick="openPasswordModal()"] {
         flex-direction: column !important;
         z-index: 9999 !important;
         background: #1e1e1e;
-        height: 100% !important; 
+        height: 100% !important;
     }
-
 
     .term-header {
         flex: 0 0 auto !important;
@@ -434,11 +441,10 @@ button[onclick="openPasswordModal()"] {
     .term-toolbar {
         display: flex !important;
         flex-wrap: wrap !important;
-        overflow: hidden !important;
-        touch-action: manipulation;
-
-        position: relative;
-        z-index: 10001;
+        overflow-x: visible !important;
+        justify-content: flex-start !important;
+        gap: 4px !important;
+        padding: 5px 8px !important;
         background: #222;
     }
 
