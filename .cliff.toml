@@ -2,29 +2,28 @@
 header = """
 # Changelog
 """
-
-body = """
+header = "# 🎉 Whats new\n"
 {% for group, commits in commits | group_by(attribute="group") %}
 ## {{ group }}
-
 {% for commit in commits %}
-- {{ commit.message | trim }}
+- {{ commit.message | upper_first }} ([{{ commit.id | truncate(length=7, end="") }}](https://github.com/Amtrend/ssh-manager/commit/{{ commit.id }}))\
 {% endfor %}
-
 {% endfor %}
 """
 footer = """
+{% if previous.version %}
 ---
-Check out the binaries below.
+**Full changelog**: https://github.com/Amtrend/ssh-manager/compare/{{ previous.version }}...{{ version }}
+{% endif %}
 """
 
 [git]
 conventional_commits = true
 filter_unconventional = true
-
 commit_parsers = [
   { message = "^feat", group = "🚀 Features" },
   { message = "^fix", group = "🐛 Bug Fixes" },
   { message = "^docs", group = "📝 Documentation" },
-  { message = "^chore", group = "🔧 Chores" }
+  { message = "^chore", group = "🔧 Chores" },
+  { message = ".*", group = "📦 Other Changes" }
 ]

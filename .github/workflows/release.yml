@@ -36,6 +36,7 @@ jobs:
 
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
+        id: git-cliff
         with:
           config: .cliff.toml
         env:
