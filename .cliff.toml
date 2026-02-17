@@ -13,7 +13,10 @@ body = """
 
 {% endfor %}
 """
-
+footer = """
+---
+**Full Changelog**: https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/compare/{{ previous.version }}...{{ version }}
+"""
 
 [git]
 conventional_commits = true
@@ -25,5 +28,3 @@ commit_parsers = [
   { message = "^docs", group = "📝 Documentation" },
   { message = "^chore", group = "🔧 Chores" }
 ]
-
-tag_pattern = "v[0-9].*"
