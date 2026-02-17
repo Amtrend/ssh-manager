@@ -15,7 +15,7 @@ body = """
 """
 footer = """
 ---
-**Full Changelog**: https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/compare/{{ previous.version }}...{{ version }}
+Check out the binaries below.
 """
 
 [git]

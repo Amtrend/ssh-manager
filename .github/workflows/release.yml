@@ -17,6 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -37,7 +38,8 @@ jobs:
         uses: orhun/git-cliff-action@v4
         with:
           config: .cliff.toml
-          args: --output CHANGELOG.md
+        env:
+          OUTPUT: changelog.md
 
       - name: Build Changelog
         uses: softprops/action-gh-release@v2
@@ -45,7 +47,7 @@ jobs:
           files: |
             ssh-manager-linux-amd64
             ssh-manager-windows-amd64.exe
-          body: CHANGELOG.md
+          body: ${{ steps.git-cliff.outputs.content }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
