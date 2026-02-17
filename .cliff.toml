@@ -1,7 +1,7 @@
 [changelog]
 header = "# 🎉 Whats new\n"
 body = """
-{% for group, commits in commits | group_by(attribute="group") %}
+{% for group, commits in commits | sort(attribute="group") | group_by(attribute="group") %}
 ## {{ group }}
 {% for commit in commits %}
 - {{ commit.message | upper_first }} ([{{ commit.id | truncate(length=7, end="") }}](https://github.com/Amtrend/ssh-manager/commit/{{ commit.id }}))\
