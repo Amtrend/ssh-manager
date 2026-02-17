@@ -27,17 +27,17 @@
                                 Open Terminal
                             </button>
 
-                            <button class="std-btn-{{.ID}}" 
+                            <button class="std-btn std-btn-{{.ID}}" 
                                     onclick="connectToHost({{.ID}}, '{{.Name}}')" 
                                     style="background-color: #28a745; color: white; {{if $isActive}}display: none;{{end}}">
                                 Connect
                             </button>
-                            <button class="std-btn-{{.ID}}" 
+                            <button class="std-btn std-btn-{{.ID}}" 
                                     onclick="openEditModal({{.ID}})" 
                                     style="{{if $isActive}}display: none;{{end}}">
                                 Edit
                             </button>
-                            <button class="std-btn-{{.ID}}" 
+                            <button class="std-btn std-btn-{{.ID}}" 
                                     onclick="openDeleteModal({{.ID}}, '{{.Name}}')" 
                                     style="{{if $isActive}}display: none;{{end}}">
                                 Delete

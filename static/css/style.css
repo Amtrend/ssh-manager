@@ -407,10 +407,10 @@ button[onclick="openPasswordModal()"] {
 
 @media screen and (max-width: 768px) {
     th, td {
-        padding: 10px 12px;
+        padding: 10px;
     }
 
-    .std-btn-1:not(:last-child) {
+    .std-btn:not(:last-child) {
         margin-bottom: 12px;
     }
 

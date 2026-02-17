@@ -290,7 +290,6 @@ window.connectToHost = function(id, name) {
             <div class="term-divider"></div>
             <div class="term-toolbar-group">
                 <button id="sel-btn-${id}" class="term-btn term-btn-action" onclick="toggleSelectMode(${id})">Select Off</button>
-                <button class="term-btn term-btn-action" onclick="copyTerminalSelection(${id})">Copy</button>
                 <button class="term-btn term-btn-action" onclick="pasteToTerminal(${id})">Paste</button>
             </div>
         </div>`;
@@ -467,13 +466,6 @@ window.sendSpecialKey = function(id, key) {
     if (!data || !data.ws || data.ws.readyState !== WebSocket.OPEN) return;
     const keyMap = { 'Tab': '\t', 'Esc': '\x1b', 'Ctrl+C': '\x03', 'Up': '\x1b[A', 'Down': '\x1b[B', 'Left': '\x1b[D', 'Right': '\x1b[C' };
     if (keyMap[key]) { data.ws.send(keyMap[key]); data.term.focus(); }
-};
-
-window.copyTerminalSelection = function(id) {
-    const data = activeTerminals[id];
-    if (data && data.term.getSelection()) {
-        navigator.clipboard.writeText(data.term.getSelection());
-    }
 };
 
 window.pasteToTerminal = async function(id) {
