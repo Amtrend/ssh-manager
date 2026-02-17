@@ -16,7 +16,7 @@ body = """
 
 footer = """
 ---
-**Full Changelog**: https://github.com/{{ repository.owner }}/{{ repository.name }}/compare/{{ previous.version }}...{{ version }}
+**Full Changelog**: https://github.com/{{ env.GITHUB_REPOSITORY }}/compare/{{ previous.version }}...{{ version }}
 """
 
 [git]
