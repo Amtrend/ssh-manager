@@ -37,7 +37,7 @@ jobs:
         with:
           configurationJson: |
             {
-              "template": "# 🎉 What's new\n\n${{CHANGELOG}}\n\n### 🛠 Check out the binaries below. Full documentation is in the repository.",
+              "template": "# 🎉 What's new\n\n${CHANGELOG}\n\n### 🛠 Check out the binaries below. Full documentation is in the repository.",
               "categories": [
                 { "title": "🚀 New features", "labels": [], "committish": "feat:" },
                 { "title": "🐛 Corrections", "labels": [], "committish": "fix:" },
