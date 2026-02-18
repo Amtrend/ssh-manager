@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 	"net/http"
 	"ssh_manager/internal/utils"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -43,7 +44,20 @@ func (h *Handlers) SSHWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	// We request a session from the service
 	as, err := h.SSHService.GetSession(userID, hostID, r.Context())
 	if err != nil {
-		log.Printf("Failed to get SSH session: %v", err)
+		utils.LogErrorf("SSH Connection failed", err, "host_id", hostID)
+
+		displayErr := "SSH Connection Error"
+		if strings.Contains(err.Error(), "unable to authenticate") {
+			displayErr = "Authentication failed: Please check your username and key/password"
+		} else if strings.Contains(err.Error(), "i/o timeout") {
+			displayErr = "Connection timeout: Server is unreachable"
+		}
+
+		errMsg := fmt.Sprintf("\r\n\x1b[31m[SSH Error] %v\x1b[0m\r\n", displayErr)
+		_ = conn.WriteMessage(websocket.TextMessage, []byte(errMsg))
+		// We give a short pause so that the frontend has time to read the message before closing the socket.
+		time.Sleep(100 * time.Millisecond)
+
 		return
 	}
 

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"ssh_manager/internal/encryption"
 	"ssh_manager/internal/models"
 	"ssh_manager/internal/utils"
 
@@ -29,6 +30,8 @@ func (h *Handlers) GetHostDataHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	host.Password = ""
+
 	utils.SendJSONResponse(w, true, "Host data retrieved successfully", host)
 }
 
@@ -44,6 +47,15 @@ func (h *Handlers) AddHostHandler(w http.ResponseWriter, r *http.Request) {
 	// Adding a host to the database
 	session, _ := h.Store.Get(r, utils.SessionName)
 	host.UserID = session.Values[utils.UserIDKey].(int)
+
+	if host.AuthType == "password" && host.Password != "" {
+		encrypted, err := encryption.Encrypt(host.Password)
+		if err != nil {
+			utils.SendJSONResponse(w, false, "Encryption failed", nil)
+			return
+		}
+		host.Password = encrypted
+	}
 
 	if err := h.HostRepo.Create(r.Context(), &host); err != nil {
 		utils.SendJSONResponse(w, false, "Failed to add host", nil)
@@ -62,18 +74,41 @@ func (h *Handlers) EditHostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var host models.Host
-	err = json.NewDecoder(r.Body).Decode(&host)
+	var updatedHost models.Host
+	err = json.NewDecoder(r.Body).Decode(&updatedHost)
 	if err != nil {
 		utils.SendJSONResponse(w, false, "Invalid request data", nil)
 		return
 	}
-	host.ID = id
 
 	session, _ := h.Store.Get(r, utils.SessionName)
-	host.UserID = session.Values[utils.UserIDKey].(int)
+	userID := session.Values[utils.UserIDKey].(int)
 
-	if err := h.HostRepo.Update(r.Context(), &host); err != nil {
+	// We get the current host to check the old password
+	oldHost, err := h.HostRepo.GetByID(r.Context(), id, userID)
+	if err != nil {
+		utils.SendJSONResponse(w, false, "Host not found", nil)
+		return
+	}
+
+	updatedHost.ID = id
+	updatedHost.UserID = userID
+
+	if updatedHost.AuthType == "password" {
+		if updatedHost.Password == "" {
+			// If you receive an empty password, leave the one that was in the database.
+			updatedHost.Password = oldHost.Password
+		} else {
+			encrypted, err := encryption.Encrypt(updatedHost.Password)
+			if err != nil {
+				utils.SendJSONResponse(w, false, "Encryption failed", nil)
+				return
+			}
+			updatedHost.Password = encrypted
+		}
+	}
+
+	if err := h.HostRepo.Update(r.Context(), &updatedHost); err != nil {
 		utils.SendJSONResponse(w, false, "Failed to update host", nil)
 		return
 	}

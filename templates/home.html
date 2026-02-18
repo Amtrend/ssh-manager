@@ -73,12 +73,23 @@
                 <label for="username">Username:</label>
                 <input type="text" id="username" name="username" required><br>
 
+                <label for="authType">Auth Method:</label>
+                <select id="authType" name="authType" onchange="toggleAuthFields()">
+                    <option value="key">SSH Key</option>
+                    <option value="password">Password</option>
+                </select><br>
+
                 <div id="keyField" style="display:none;">
                     <label for="keyID">Private Key:</label>
                     <select id="keyID" name="keyID"></select><br>
                 </div>
 
-                <button type="submit">Save</button>
+                <div id="passwordField" style="display:none;">
+                    <label for="hostPassword">Password:</label>
+                    <input type="password" id="hostPassword" name="password">
+                </div>
+
+                <br><button type="submit">Save</button>
             </form>
         </div>
     </div>

@@ -62,33 +62,53 @@ func (s *SSHService) initNewSession(userID, hostID int, ctx context.Context) (*m
 		return nil, err
 	}
 
-	key, err := s.KeyRepo.GetByID(ctx, host.KeyID, userID)
-	if err != nil {
-		return nil, err
-	}
+	var authMethods []ssh.AuthMethod
 
-	decryptedKey, err := encryption.Decrypt(key.KeyData)
-	if err != nil {
-		return nil, err
-	}
+	if host.AuthType == "password" {
+		if host.Password == "" {
+			return nil, err
+		}
 
-	signer, err := ssh.ParsePrivateKey([]byte(decryptedKey))
-	if err != nil {
-		return nil, err
+		decryptedPassword, err := encryption.Decrypt(host.Password)
+		if err != nil {
+			return nil, err
+		}
+		authMethods = append(authMethods, ssh.Password(decryptedPassword))
+	} else {
+		if host.KeyID == nil {
+			return nil, err
+		}
+
+		key, err := s.KeyRepo.GetByID(ctx, *host.KeyID, userID)
+		if err != nil {
+			return nil, err
+		}
+
+		decryptedKey, err := encryption.Decrypt(key.KeyData)
+		if err != nil {
+			return nil, err
+		}
+
+		signer, err := ssh.ParsePrivateKey([]byte(decryptedKey))
+		if err != nil {
+			return nil, err
+		}
+		authMethods = append(authMethods, ssh.PublicKeys(signer))
 	}
 
 	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", host.Address, host.Port), &ssh.ClientConfig{
 		User:            host.Username,
-		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
+		Auth:            authMethods,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Timeout:         10 * time.Second,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Connection failed: %v", err)
 	}
 
 	sshSess, err := client.NewSession()
 	if err != nil {
+		client.Close()
 		return nil, err
 	}
 

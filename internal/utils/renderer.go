@@ -39,6 +39,6 @@ func RenderTemplate(w http.ResponseWriter, page string, data map[string]interfac
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	err := tmpl.ExecuteTemplate(w, "base", data)
 	if err != nil {
-		LogErrorf("Render error for %s: %v", page, err)
+		LogErrorf("Template render failed", err, "page", page)
 	}
 }

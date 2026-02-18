@@ -110,7 +110,8 @@ window.openAddModal = async function() {
         hForm.action = '/hosts/add';
         hForm.reset();
         document.getElementById('port').value = 22;
-        document.getElementById('keyField').style.display = 'block';
+        document.getElementById('authType').value = 'key';
+        toggleAuthFields();
         document.getElementById('hostModal').style.display = 'block';
     } else if (kForm) {
         document.getElementById('modalTitle').innerText = 'Add Key';
@@ -135,8 +136,18 @@ window.openEditModal = async function(id) {
                 document.getElementById('address').value = res.data.address;
                 document.getElementById('port').value = res.data.port;
                 document.getElementById('username').value = res.data.username;
-                document.getElementById('keyID').value = res.data.key_id || 0;
-                document.getElementById('keyField').style.display = 'block';
+                const aType = res.data.auth_type || 'key';
+                document.getElementById('authType').value = aType;
+
+                if (aType === 'password') {
+                    const passInput = document.getElementById('hostPassword');
+                    passInput.value = ''; 
+                    passInput.placeholder = '******** (leave empty to keep current)';
+                } else {
+                    document.getElementById('keyID').value = res.data.key_id || 0;
+                }
+
+                toggleAuthFields();
                 document.getElementById('hostModal').style.display = 'block';
             }
         });
@@ -179,6 +190,22 @@ window.confirmDelete = function() {
     }).then(r => r.json()).then(data => data.success ? location.reload() : showErrorModal(data.message));
 };
 
+window.toggleAuthFields = function() {
+    const type = document.getElementById('authType').value;
+    const keyField = document.getElementById('keyField');
+    const passField = document.getElementById('passwordField');
+
+    if (type === 'key') {
+        keyField.style.display = 'block';
+        passField.style.display = 'none';
+        document.getElementById('hostPassword').value = '';
+    } else {
+        keyField.style.display = 'none';
+        passField.style.display = 'block';
+        document.getElementById('keyID').value = '0';
+    }
+};
+
 /* --- SOME EVENTS AND VALIDATIONS --- */
 document.addEventListener('input', (e) => {
     if (e.target.id === 'deleteHostName' || e.target.id === 'confirmName') {
@@ -191,12 +218,41 @@ document.addEventListener('submit', (e) => {
     if (e.target.id === 'hostForm' || e.target.id === 'keyForm') {
         e.preventDefault();
         const isHost = e.target.id === 'hostForm';
+        const csrfToken = document.getElementById('csrf_token').value;
+        let payload = {};
 
         if (isHost) {
-            const kVal = document.getElementById('keyID').value;
-            if (kVal === "0" || !kVal) {
-                showErrorModal("Error: You must select a valid SSH key.");
-                return;
+            const authType = document.getElementById('authType').value;
+            const isEdit = e.target.action.includes('/edit/');
+            
+            payload = {
+                name: document.getElementById('name').value,
+                address: document.getElementById('address').value,
+                port: document.getElementById('port').value.toString(),
+                username: document.getElementById('username').value,
+                auth_type: authType,
+                csrf_token: csrfToken
+            };
+
+            if (authType === 'key') {
+                const kVal = document.getElementById('keyID').value;
+                if (kVal === "0" || !kVal) {
+                    showErrorModal("Error: You must select a valid SSH key.");
+                    return;
+                }
+                payload.key_id = kVal.toString();
+                payload.password = ""; 
+            } else {
+                const pVal = document.getElementById('hostPassword').value.trim();
+                
+                // If this is an edit, an empty password is allowed..
+                if (!isEdit && !pVal) {
+                    showErrorModal("Error: Password cannot be empty.");
+                    return;
+                }
+                
+                payload.password = pVal; // Can be an empty string when Editing
+                payload.key_id = "0"; 
             }
         } else {
             const kname = document.getElementById('keyName').value.trim();
@@ -205,24 +261,14 @@ document.addEventListener('submit', (e) => {
                 showErrorModal("Fields cannot be empty");
                 return;
             }
+            payload = {
+                name: kname,
+                key_data: kdata,
+                csrf_token: csrfToken
+            };
         }
 
-        const csrfToken = document.getElementById('csrf_token').value;
-        let targetUrl = e.target.action;
-        
-        const payload = isHost ? {
-            name: document.getElementById('name').value,
-            address: document.getElementById('address').value,
-            port: document.getElementById('port').value.toString(),
-            username: document.getElementById('username').value,
-            key_id: document.getElementById('keyID').value.toString(),
-            csrf_token: csrfToken
-        } : {
-            name: document.getElementById('keyName').value.trim(),
-            key_data: document.getElementById('privateKey').value.trim(),
-            csrf_token: csrfToken
-        };
-
+        const targetUrl = e.target.action;
         fetch(targetUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -237,13 +283,23 @@ document.addEventListener('submit', (e) => {
 async function loadKeysForSelect() {
     const select = document.getElementById('keyID');
     if (!select) return;
-    const r = await fetch('/keys/list');
-    const res = await r.json();
-    if (res.success) {
+
+    try {
+        const r = await fetch('/keys/list');
+        const res = await r.json();
+ 
+        const keys = (res && res.data && Array.isArray(res.data)) ? res.data : [];
         select.innerHTML = '<option value="0">-- No selected Keys --</option>';
-        res.data.forEach(k => {
-            select.innerHTML += `<option value="${k.id}">${k.name}</option>`;
+
+        // If there are keys, we render them.
+        keys.forEach(k => {
+            const option = document.createElement('option');
+            option.value = k.id;
+            option.textContent = k.name;
+            select.appendChild(option);
         });
+    } catch (err) {
+        select.innerHTML = '<option value="0">-- Error loading keys --</option>';
     }
 }
 
