@@ -7,6 +7,11 @@ let globalExpectedName = "";
 function bringToFront(el) {
     maxZIndex++;
     el.style.zIndex = maxZIndex;
+
+    const id = el.id.replace('term-win-', '');
+    if (activeTerminals[id]) {
+        activeTerminals[id].fitAddon.fit();
+    }
 }
 
 /* --- GENERAL FUNCTIONALITY (MODALS AND ERRORS) --- */
@@ -254,6 +259,13 @@ window.connectToHost = function(id, name) {
     termWrapper.className = 'term-window';
     bringToFront(termWrapper);
     termWrapper.addEventListener('mousedown', () => bringToFront(termWrapper));
+
+    termWrapper.addEventListener('click', (e) => {
+        // If you clicked neither on a button nor on a link
+        if (!e.target.closest('button') && !e.target.closest('a')) {
+            term.focus(); 
+        }
+    });
 
     const offset = Object.keys(activeTerminals).length * 30;
     termWrapper.style.left = (50 + offset) + 'px';
@@ -508,47 +520,41 @@ window.toggleSelectMode = function(id) {
 };
 
 window.visualViewport.addEventListener('resize', () => {
-    const toolbar = document.querySelector('.term-toolbar');
-    if (!toolbar) return;
-
     const offset = window.innerHeight - window.visualViewport.height;
-    
-    // Use marginBottom only if the keyboard is really in the way.
-    if (offset > 50) {
-        toolbar.style.marginBottom = offset + 'px';
-    } else {
-        toolbar.style.marginBottom = '0';
-    }
-    
-    // Function for fitting the terminal (moved out to call twice).
-    const adjustTerminal = (t) => {
-        t.fitAddon.fit();
-        requestAnimationFrame(() => {
-            t.term.scrollToBottom();
-            t.term.focus();
-            t.term.refresh(t.term.buffer.active.cursorY, t.term.buffer.active.cursorY);
-            
-            // We send the new dimensions to the server so that htop can re-render.
-            if (t.ws && t.ws.readyState === WebSocket.OPEN) {
-                t.ws.send(JSON.stringify({ 
-                    type: "resize", 
-                    cols: t.term.cols, 
-                    rows: t.term.rows 
-                }));
-            }
-        });
-    };
+    const isKeyboardOpen = offset > 50;
 
-    Object.values(activeTerminals).forEach(t => {
-        // Works instantly
-        adjustTerminal(t);
-        
-        // It triggers after 300ms when the keyboard has reached the end.
-        setTimeout(() => adjustTerminal(t), 300);
+    Object.entries(activeTerminals).forEach(([id, t]) => {
+        const toolbar = t.window.querySelector('.term-toolbar');
+        if (!toolbar) return;
+
+        // Move the toolbar ONLY to the window that is currently active/in the foreground
+        if (isKeyboardOpen) {
+            toolbar.style.marginBottom = offset + 'px';
+        } else {
+            toolbar.style.marginBottom = '0';
+        }
+
+        // Resizing function
+        const adjustTerminal = () => {
+            t.fitAddon.fit();
+            requestAnimationFrame(() => {
+                t.term.scrollToBottom();
+
+                if (t.ws && t.ws.readyState === WebSocket.OPEN) {
+                    t.ws.send(JSON.stringify({ 
+                        type: "resize", 
+                        cols: t.term.cols, 
+                        rows: t.term.rows 
+                    }));
+                }
+            });
+        };
+
+        // We are making adjustments
+        adjustTerminal();
+        setTimeout(adjustTerminal, 300);
     });
 });
-
-
 
 // Silent socket recovery function.
 function silentReconnect(id) {
