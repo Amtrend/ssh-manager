@@ -7,13 +7,14 @@ body = """
 - {{ commit.message | upper_first }} ([{{ commit.id | truncate(length=7, end="") }}](https://github.com/Amtrend/ssh-manager/commit/{{ commit.id }}))\
 {% endfor %}
 {% endfor %}
-"""
-footer = """
-{% if previous.version %}
----
-**Full changelog**: https://github.com/Amtrend/ssh-manager/compare/{{ previous.version }}...{{ version }}
+
+{% if version %}
+    {% if previous.version %}
+**Full Changelog**: https://github.com/Amtrend/ssh-manager/compare/{{ previous.version }}...{{ version }}
+    {% endif %}
 {% endif %}
 """
+footer = ""
 
 [git]
 conventional_commits = true
