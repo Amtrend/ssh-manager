@@ -1,14 +1,18 @@
 # SSH Connection Manager
 
-A modern, lightweight, and secure web-based SSH connection manager. Manage your servers directly from your browser using a built-in terminal.
+A modern, lightweight, and secure web-based SSH connection manager. Manage your servers directly from your browser with a built-in terminal and a full-featured file manager.
 
 ## Key Features
 * **Web-Terminal:** Fully functional console (xterm.js) right in your browser.
-* **Persistent Sessions:** Connections remain active for a set duration even if you close the tab or lose your internet connection.
-* **High Security:** Private SSH keys are encrypted using **AES-256** before being stored in the database.
-* **Database Versatility:** Supports **PostgreSQL** for large-scale deployments and **SQLite** for a quick start.
+* **Integrated SFTP Manager:** * Fast directory navigation with breadcrumbs.
+    * Single file downloads and **Multi-file ZIP downloads** on the fly.
+    * Drag-and-drop file uploads.
+    * Recursive folder compression for downloads.
+* **Flexible Authentication:** Connect to hosts using either **Private Keys** or **Passwords**.
+* **Persistent Sessions:** Connections remain active for a set duration even if you close the tab. SFTP and Terminal share the same secure tunnel.
+* **High Security:** Both SSH Private Keys and Host Passwords are encrypted using **AES-256 GCM** before being stored in the database.
 * **Zero Config:** Automatically initializes tables and creates an admin account on the first run.
-* **Cleanup Service:** Automatically closes abandoned SSH sessions based on a configurable timeout.
+* **Smart Cleanup:** Automatically closes abandoned SSH sessions based on a configurable timeout.
 
 ---
 
@@ -120,6 +124,22 @@ openssl rand -base64 32
 
 ---
 
+## Configuration & Usage
+
+### Host Management
+When adding a new host, you can specify:
+* **Auth Type:** Choose between Password or Private Key.
+* **Default Path:** Set a starting directory for the SFTP manager (e.g., `/var/www/html` or `/home/user/logs`).
+* **Encryption:** The system automatically encrypts your credentials using your `ENCRYPTION_KEY`.
+
+### SFTP Capabilities
+The built-in file manager allows you to:
+1. **Navigate:** Click through directories with instant breadcrumb updates.
+2. **Download ZIP:** Select multiple files or folders; the server will stream them to you as a single ZIP archive without creating temporary files on the remote host.
+3. **Upload:** Upload files via the web interface directly to the current remote directory.
+
+---
+
 ## Resources
 
 * **Docker Hub:** [https://hub.docker.com/r/alexmaltz/ssh-manager](https://hub.docker.com/r/alexmaltz/ssh-manager)
@@ -129,6 +149,7 @@ openssl rand -base64 32
 
 ## Security
 
-* **Encryption:** Private SSH keys are encrypted before hitting the DB. Without your `ENCRYPTION_KEY`, the data is useless.
+* **Credential Encryption:** All sensitive data (SSH keys and passwords) is encrypted at rest. Without your `ENCRYPTION_KEY`, the data is useless.
+* **CSRF Protection:** Secure tokens are required for all file operations (Upload/Download).
+* **Multiplexing:** SFTP operations run over the same encrypted SSH tunnel as your terminal, reducing the attack surface.
 * **Access Protection:** All user passwords are hashed using `bcrypt`.
-* **Resource Protection:** The system automatically terminates abandoned SSH tunnels after `SESSION_TIMEOUT` to save resources.
