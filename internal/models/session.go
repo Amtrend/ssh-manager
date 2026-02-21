@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -13,6 +14,7 @@ type ActiveSession struct {
 	HostID       int
 	SSHClient    *ssh.Client
 	SSHSession   *ssh.Session
+	SFTPClient   *sftp.Client
 	Stdin        io.WriteCloser
 	OutputBuffer []byte
 	LastActivity time.Time
