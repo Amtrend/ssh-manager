@@ -48,6 +48,10 @@ func (h *Handlers) AddHostHandler(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.Store.Get(r, utils.SessionName)
 	host.UserID = session.Values[utils.UserIDKey].(int)
 
+	if host.Settings.DefaultPath == "" {
+		host.Settings.DefaultPath = "/"
+	}
+
 	if host.AuthType == "password" && host.Password != "" {
 		encrypted, err := encryption.Encrypt(host.Password)
 		if err != nil {
@@ -58,6 +62,7 @@ func (h *Handlers) AddHostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.HostRepo.Create(r.Context(), &host); err != nil {
+		utils.LogErrorf("Failed to create host", err)
 		utils.SendJSONResponse(w, false, "Failed to add host", nil)
 		return
 	}
@@ -109,6 +114,7 @@ func (h *Handlers) EditHostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.HostRepo.Update(r.Context(), &updatedHost); err != nil {
+		utils.LogErrorf("Failed to update host", err)
 		utils.SendJSONResponse(w, false, "Failed to update host", nil)
 		return
 	}

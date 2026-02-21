@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -123,10 +124,17 @@ func (s *SSHService) initNewSession(userID, hostID int, ctx context.Context) (*m
 	})
 	sshSess.Shell()
 
+	sftpClient, err := sftp.NewClient(client)
+	if err != nil {
+		log.Printf("SFTP sub-protocol failed for host %d: %v", hostID, err)
+		sftpClient = nil
+	}
+
 	as := &models.ActiveSession{
 		HostID:       hostID,
 		SSHClient:    client,
 		SSHSession:   sshSess,
+		SFTPClient:   sftpClient,
 		Stdin:        stdin,
 		Clients:      make(map[chan []byte]bool),
 		LastActivity: time.Now(),
@@ -190,6 +198,9 @@ func (s *SSHService) terminateSessionUnsafe(userID, hostID int) {
 	}
 
 	// Closing everything
+	if as.SFTPClient != nil {
+		as.SFTPClient.Close()
+	}
 	if as.SSHSession != nil {
 		as.SSHSession.Close()
 	}
