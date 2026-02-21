@@ -270,6 +270,8 @@ button[onclick="openPasswordModal()"] {
     height: 100%;
     overflow: hidden;
     position: relative;
+    display: block;
+    flex: 1;
 }
 
 .term-controls button {
@@ -458,4 +460,254 @@ button[onclick="openPasswordModal()"] {
     .xterm-helper-textarea {
         display: block !important;
     }
+}
+
+/* SFTP styles */
+.term-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #333;
+    padding: 8px 12px;
+}
+
+.term-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.term-tabs-center {
+    flex: 2;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.tab-btn {
+    font-size: 12px;
+    padding: 3px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    background: #222;
+    color: #888;
+    border: 1px solid #444;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.tab-btn.active {
+    background: #0056b3;
+    color: #fff;
+    border-color: #007bff;
+}
+
+.window-content-viewer {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    background: #1e1e1e;
+}
+
+.files-body {
+    background: #1e1e1e;
+    color: #ddd;
+    display: flex;
+    flex-direction: column;
+}
+
+.sftp-toolbar {
+    background: #2a2a2a;
+    padding: 6px 12px;
+    border-bottom: 1px solid #444;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.sftp-path {
+    font-family: 'Consolas', monospace;
+    color: #00ff00;
+    font-size: 13px;
+}
+
+.file-list-area {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.sftp-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.sftp-table tr {
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+}
+
+.sftp-table tr:hover {
+    background: #2c2c2c;
+}
+
+.sftp-table td {
+    padding: 10px;
+    font-size: 12px;
+}
+
+.file-size {
+    color: #666;
+    text-align: right;
+    font-size: 12px;
+}
+
+.file-list-area {
+    flex: 1;
+    overflow-y: auto !important;
+    overflow-x: hidden;
+}
+
+.file-list-area::-webkit-scrollbar {
+    width: 8px;
+}
+.file-list-area::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+.file-list-area::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 4px;
+}
+.file-list-area::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.sftp-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #333;
+}
+
+.sftp-path span:hover {
+    text-decoration: underline;
+}
+
+.files-body {
+    flex: 1;
+    display: none;
+    flex-direction: column;
+    background: #1e1e1e;
+    color: #ddd;
+    height: 100%;
+    min-height: 0;
+}
+
+.file-list-area {
+    flex: 1;
+    overflow-y: auto !important; 
+    overflow-x: hidden;
+    height: 0;
+}
+
+.sftp-table {
+    table-layout: fixed;
+    border-spacing: 0;
+    width: 100%;
+}
+
+.files-body {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    color: #ddd;
+    display: none;
+    flex-direction: column;
+    z-index: 5;
+}
+
+.file-list-area {
+    flex: 1;
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    min-height: 0;
+}
+
+.sftp-table tr.selected {
+    background: #264f78 !important;
+}
+
+.sftp-toolbar {
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.col-check {
+    width: 30px !important;
+    max-width: 30px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    text-align: center;
+}
+
+.col-check input[type="checkbox"] {
+    all: unset;
+    appearance: none;
+    -webkit-appearance: none;
+    width: 14px !important;
+    height: 14px !important;
+    min-width: 14px !important;
+    background: #333;
+    border: 1px solid #555;
+    border-radius: 2px;
+    cursor: pointer;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto !important;
+    padding: 0 !important;
+}
+
+.col-check input[type="checkbox"]:hover {
+    border-color: #007acc;
+}
+
+.col-check input[type="checkbox"]:checked {
+    background: #007acc;
+    border-color: #007acc;
+}
+
+.col-check input[type="checkbox"]:checked::after {
+    content: '✔';
+    color: white;
+    font-size: 10px;
+    line-height: 1;
+}
+
+.sftp-table td:nth-child(2) {
+    width: 35px !important;
+    text-align: center;
+    padding-left: 10px !important;
+}
+
+.sftp-toolbar-main, .sftp-toolbar-select {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 15px;
+}
+
+.select-count-text {
+    font-size: 12px; 
+    color: #aaa;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.file-name {
+    width: auto;
 }

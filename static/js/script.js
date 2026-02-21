@@ -134,6 +134,8 @@ window.openEditModal = async function(id) {
                 hForm.action = `/hosts/edit/${id}`;
                 document.getElementById('name').value = res.data.name;
                 document.getElementById('address').value = res.data.address;
+                const settings = res.data.settings || {};
+                document.getElementById('defaultPath').value = settings.default_path || "/";
                 document.getElementById('port').value = res.data.port;
                 document.getElementById('username').value = res.data.username;
                 const aType = res.data.auth_type || 'key';
@@ -170,6 +172,7 @@ window.openDeleteModal = function(arg1, arg2) {
     globalExpectedName = isHost ? arg2 : arg1;
 
     if (isHost) {
+        if (document.getElementById('targetHostName')) document.getElementById('targetHostName').innerText = globalExpectedName;
         document.getElementById('deleteHostName').value = '';
         document.getElementById('confirmDeleteBtn').disabled = true;
     } else {
@@ -231,6 +234,9 @@ document.addEventListener('submit', (e) => {
                 port: document.getElementById('port').value.toString(),
                 username: document.getElementById('username').value,
                 auth_type: authType,
+                settings: {
+                    default_path: document.getElementById('defaultPath').value.trim() || "/"
+                },
                 csrf_token: csrfToken
             };
 
@@ -304,11 +310,14 @@ async function loadKeysForSelect() {
 }
 
 /* --- TERMINAL AND SSH --- */
-window.connectToHost = function(id, name) {
+window.connectToHost = function(id, name, defaultPath = "/") {
     if (activeTerminals[id]) {
         window.maximizeTerminal(id);
         return;
     }
+
+    // We save the path directly to the object.
+    const initialPath = defaultPath || "/";
 
     const termWrapper = document.createElement('div');
     termWrapper.id = `term-win-${id}`;
@@ -331,34 +340,73 @@ window.connectToHost = function(id, name) {
 
     termWrapper.innerHTML = `
         <div class="term-header" id="header-${id}">
-            <span><i class="fas fa-terminal"></i> ${name}</span>
+            <div class="term-header-left">
+                <i class="fas fa-terminal" style="color: #888;"></i> 
+                <span class="term-hostname">${name}</span>
+            </div>
+            
+            <div class="term-tabs-center">
+                <span class="tab-btn active" id="tab-term-${id}" onclick="window.switchTab(${id}, 'term')">Terminal</span>
+                <span class="tab-btn" id="tab-files-${id}" onclick="window.switchTab(${id}, 'files')">Files</span>
+            </div>
+
             <div class="term-controls">
                 <button onclick="minimizeTerminal(${id})" title="Свернуть">_</button>
                 <button onclick="maximizeTerminal(${id})" title="Развернуть/Сжать">&#9633;</button>
                 <button onclick="window.closeTerminal(${id})" class="btn-close" title="Закрыть">&times;</button>
             </div>
         </div>
-        <div id="term-${id}" class="term-body"></div>
-        <div class="term-toolbar">            
-            <div class="term-toolbar-group">
-                <button class="term-btn" onclick="sendSpecialKey(${id}, 'Esc')">Esc</button>
-                <button class="term-btn" onclick="sendSpecialKey(${id}, 'Tab')">Tab</button>
+        
+        <div class="window-content-viewer">
+            <div id="term-${id}" class="term-body"></div>
+            
+            <div id="files-${id}" class="files-body" style="display:none;">
+                <div class="sftp-toolbar">
+                    <div class="sftp-toolbar-main" id="toolbar-main-${id}">
+                        <button class="term-btn" onclick="window.goUp(${id})"><i class="fas fa-arrow-up"></i> Up</button>
+                        <button class="term-btn" onclick="window.toggleSftpSelectMode(${id})"><i class="fas fa-check-square"></i> Select</button>
+                        <button class="term-btn" onclick="document.getElementById('upload-input-${id}').click()"><i class="fas fa-upload"></i> Upload</button>
+                        <input type="file" id="upload-input-${id}" multiple style="display:none" onchange="window.handleUpload(${id}, this)">
+                    </div>
+                    
+                    <div class="sftp-toolbar-select" id="toolbar-select-${id}" style="display:none;">
+                        <button class="term-btn term-btn-action" onclick="window.downloadSelected(${id})">Download Zip</button>
+                        <button class="term-btn" onclick="window.toggleSftpSelectMode(${id})">Cancel</button>
+                        <span id="select-count-${id}" class="select-count-text">Selected: 0</span>
+                    </div>
+
+                    <span id="path-${id}" class="sftp-path">/</span>
+                </div>
+                <div id="file-list-${id}" class="file-list-area"></div>
             </div>
-            <div class="term-divider"></div>
-            <div class="term-toolbar-group">
-                <button class="term-btn term-btn-arrow" onclick="sendSpecialKey(${id}, 'Left')">&larr;</button>
-                <button class="term-btn term-btn-arrow" onclick="sendSpecialKey(${id}, 'Up')">&uarr;</button>
-                <button class="term-btn term-btn-arrow" onclick="sendSpecialKey(${id}, 'Down')">&darr;</button>
-                <button class="term-btn term-btn-arrow" onclick="sendSpecialKey(${id}, 'Right')">&rarr;</button>
-            </div>
-            <div class="term-divider"></div>
-            <div class="term-toolbar-group">
-                <button class="term-btn term-btn-danger" onclick="sendSpecialKey(${id}, 'Ctrl+C')">Ctrl+C</button>
-            </div>
-            <div class="term-divider"></div>
-            <div class="term-toolbar-group">
-                <button id="sel-btn-${id}" class="term-btn term-btn-action" onclick="toggleSelectMode(${id})">Select Off</button>
-                <button class="term-btn term-btn-action" onclick="pasteToTerminal(${id})">Paste</button>
+
+            <div class="term-toolbar" id="toolbar-${id}">            
+                <div class="term-toolbar-group">
+                    <button class="term-btn" onclick="sendSpecialKey(${id}, 'Esc')">Esc</button>
+                    <button class="term-btn" onclick="sendSpecialKey(${id}, 'Tab')">Tab</button>
+                </div>
+                <div class="term-divider"></div>
+                <div class="term-toolbar-group">
+                    <button class="term-btn term-btn-arrow" onclick="sendSpecialKey(${id}, 'Left')">&larr;</button>
+                    <button class="term-btn term-btn-arrow" onclick="sendSpecialKey(${id}, 'Up')">&uarr;</button>
+                    <button class="term-btn term-btn-arrow" onclick="sendSpecialKey(${id}, 'Down')">&uarr;</button>
+                    <button class="term-btn term-btn-arrow" onclick="sendSpecialKey(${id}, 'Right')">&rarr;</button>
+                </div>
+                <div class="term-divider"></div>
+                <div class="term-toolbar-group">
+                    <button class="term-btn" onclick="sendSpecialKey(${id}, 'PgUp')">PU</button>
+                    <button class="term-btn" onclick="sendSpecialKey(${id}, 'PgDn')">PD</button>
+                </div>
+                <div class="term-divider"></div>
+                <div class="term-toolbar-group">
+                    <button class="term-btn term-btn-danger" onclick="sendSpecialKey(${id}, 'Ctrl+C')">Ctrl+C</button>
+                    <button class="term-btn term-btn-danger" onclick="sendSpecialKey(${id}, 'Delete')">Del</button>
+                </div>
+                <div class="term-divider"></div>
+                <div class="term-toolbar-group">
+                    <button id="sel-btn-${id}" class="term-btn term-btn-action" onclick="toggleSelectMode(${id})">Sel Off</button>
+                    <button class="term-btn term-btn-action" onclick="pasteToTerminal(${id})">Paste</button>
+                </div>
             </div>
         </div>`;
 
@@ -379,7 +427,13 @@ window.connectToHost = function(id, name) {
     const ws = new WebSocket(`${protocol}://${window.location.host}/ws/ssh?id=${id}`);
 
     activeTerminals[id] = { 
-        term, ws, fitAddon, window: termWrapper,
+        term: term, 
+        ws: ws, 
+        fitAddon: fitAddon, 
+        window: termWrapper,
+        currentPath: initialPath,
+        selectionMode: false,
+        selectedFiles: new Set(),
         resizeObserver: new ResizeObserver(() => {
             window.requestAnimationFrame(() => {
                 fitAddon.fit();
@@ -430,22 +484,78 @@ window.connectToHost = function(id, name) {
 /* --- AUXILIARY FUNCTIONS (DRAG, RESIZE, STATUS) --- */
 function makeDraggable(el, header) {
     let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+    // Mouse handling on desktop when dragging.
     header.onmousedown = function(e) {
         if (e.target.closest('button')) return;
         e.preventDefault();
+        
         pos3 = e.clientX;
         pos4 = e.clientY;
-        document.onmouseup = () => { document.onmouseup = null; document.onmousemove = null; };
-        document.onmousemove = (ev) => {
-            pos1 = pos3 - ev.clientX;
-            pos2 = pos4 - ev.clientY;
-            pos3 = ev.clientX;
-            pos4 = ev.clientY;
+        
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
+    };
+
+    function elementDrag(e) {
+        e.preventDefault();
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        el.style.top = (el.offsetTop - pos2) + "px";
+        el.style.left = (el.offsetLeft - pos1) + "px";
+        el.style.transform = "none"; 
+    }
+
+    function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
+    }
+
+    // processing a wheelbarrow on a mobile phone.
+    header.ontouchstart = function(e) {
+        if (e.target.closest('button')) return;
+        
+        pos3 = e.touches[0].clientX;
+        pos4 = e.touches[0].clientY;
+
+        document.ontouchend = () => {
+            document.ontouchend = null;
+            document.ontouchmove = null;
+        };
+
+        document.ontouchmove = (ev) => {
+            // Preventing page scrolling while dragging
+            ev.preventDefault(); 
+            
+            pos1 = pos3 - ev.touches[0].clientX;
+            pos2 = pos4 - ev.touches[0].clientY;
+            pos3 = ev.touches[0].clientX;
+            pos4 = ev.touches[0].clientY;
+            
             el.style.top = (el.offsetTop - pos2) + "px";
             el.style.left = (el.offsetLeft - pos1) + "px";
+            el.style.transform = "none";
         };
     };
 }
+
+window.addEventListener("orientationchange", () => {
+    // Wait for the turn animation to finish in the mobile system.
+    setTimeout(() => {
+        Object.values(activeTerminals).forEach(data => {
+            if (data && data.fitAddon) {
+                data.fitAddon.fit();
+                // If the window has become wider than the screen, reset it to 0.0.
+                if (parseInt(data.window.style.left) > window.innerWidth) {
+                    data.window.style.left = '10px';
+                    data.window.style.top = '10px';
+                }
+            }
+        });
+    }, 300);
+});
 
 window.minimizeTerminal = function(id) {
     const win = document.getElementById(`term-win-${id}`);
@@ -487,9 +597,24 @@ window.closeTerminal = async function(id) {
     const data = activeTerminals[id];
     if (!data) return;
 
+    // First, disable the observer so that it does not send resize to a closed socket.
+    if (data.resizeObserver) {
+        data.resizeObserver.disconnect();
+    }
+
+    // We set a flag so that the reconnect logic does not try to revive it.
     data.explicitlyClosed = true;
 
+    // Close the socket before deleting the window.
+    if (data.ws) {
+        // We remove the onclose handler so that it does not call silentReconnect.
+        data.ws.onclose = null; 
+        data.ws.close();
+    }
+
     updateStatusBtn(id, false);
+    
+    // Notify the server (optional, as Close on the socket should do this).
     const csrfToken = document.getElementById('csrf_token')?.value;
     try {
         await fetch(`/ssh/terminate?id=${id}`, { 
@@ -498,10 +623,12 @@ window.closeTerminal = async function(id) {
             body: JSON.stringify({ csrf_token: csrfToken })
         });
     } catch (e) {}
-    if (data.ws) data.ws.close();
-    if (data.window) data.window.remove();
-    if (data.resizeObserver) data.resizeObserver.disconnect();
 
+    if (data.window) {
+        data.window.remove();
+    }
+
+    // Delete from memory.
     delete activeTerminals[id];
 };
 
@@ -532,7 +659,18 @@ function makeResizable(el, id) {
 window.sendSpecialKey = function(id, key) {
     const data = activeTerminals[id];
     if (!data || !data.ws || data.ws.readyState !== WebSocket.OPEN) return;
-    const keyMap = { 'Tab': '\t', 'Esc': '\x1b', 'Ctrl+C': '\x03', 'Up': '\x1b[A', 'Down': '\x1b[B', 'Left': '\x1b[D', 'Right': '\x1b[C' };
+    const keyMap = { 
+        'Tab': '\t', 
+        'Esc': '\x1b', 
+        'Ctrl+C': '\x03', 
+        'Up': '\x1b[A', 
+        'Down': '\x1b[B', 
+        'Left': '\x1b[D', 
+        'Right': '\x1b[C',
+        'Delete': '\x1b[3~',
+        'PgUp': '\x1b[5~',
+        'PgDn': '\x1b[6~'
+    };
     if (keyMap[key]) { data.ws.send(keyMap[key]); data.term.focus(); }
 };
 
@@ -566,11 +704,11 @@ window.toggleSelectMode = function(id) {
         }
         layer.innerText = text;
         termBody.appendChild(layer);
-        btn.innerText = 'Select ON';
+        btn.innerText = 'Sel ON';
         layer.scrollTop = layer.scrollHeight;
     } else {
         layer.remove();
-        btn.innerText = 'Select Off';
+        btn.innerText = 'Sel Off';
         setTimeout(() => { data.term.focus(); data.term.scrollToBottom(); }, 50);
     }
 };
@@ -623,7 +761,6 @@ function silentReconnect(id) {
     const ws = new WebSocket(`${protocol}://${window.location.host}/ws/ssh?id=${id}`);
 
     ws.onopen = () => {
-        console.log(`Restored ${id}`);
         tData.ws = ws; // Replace the socket in object.
         updateStatusBtn(id, true);
         tData.fitAddon.fit();
@@ -658,3 +795,286 @@ document.addEventListener('visibilitychange', () => {
         });
     }
 });
+
+window.switchTab = function(id, tab) {
+    const termBody = document.getElementById(`term-${id}`);
+    const filesBody = document.getElementById(`files-${id}`);
+    const toolbar = document.getElementById(`toolbar-${id}`);
+    const tabTerm = document.getElementById(`tab-term-${id}`);
+    const tabFiles = document.getElementById(`tab-files-${id}`);
+
+    if (tab === 'term') {
+        // Show the terminal, hide files.
+        filesBody.style.display = 'none';
+        
+        if (window.innerWidth <= 768) toolbar.style.setProperty('display', 'flex', 'important');
+        tabTerm.classList.add('active');
+        tabFiles.classList.remove('active');
+        
+        if (activeTerminals[id]) {
+            const t = activeTerminals[id];
+            // A short pause for the DOM to recover
+            setTimeout(() => {
+                t.fitAddon.fit();
+                t.term.focus();
+                t.term.refresh(0, t.term.rows - 1);
+            }, 30);
+        }
+    } else {
+        // Show files on top of the terminal
+        filesBody.style.display = 'flex';
+        
+        toolbar.style.setProperty('display', 'none', 'important');
+        tabTerm.classList.remove('active');
+        tabFiles.classList.add('active');
+        
+        window.loadFiles(id, activeTerminals[id].currentPath);
+    }
+};
+
+window.loadFiles = async function(hostID, path) {
+    const listArea = document.getElementById(`file-list-${hostID}`);
+    const pathLabel = document.getElementById(`path-${hostID}`);
+    
+    listArea.innerHTML = '<div style="padding:15px; color: #888;">Loading...</div>';
+
+    try {
+        const url = `/sftp/list?host_id=${hostID}&path=${encodeURIComponent(path)}`;
+        const r = await fetch(url);
+        const res = await r.json();
+
+        if (!res.success) {
+            listArea.innerHTML = `<div style="color:#ff5555; padding:15px;">${res.message}</div>`;
+            return;
+        }
+
+        const actualPath = res.data.current_path
+        activeTerminals[hostID].currentPath = actualPath;
+        renderBreadcrumbs(hostID, actualPath);
+        
+        let html = '<table class="sftp-table" style="width:100%; table-layout: fixed;"><tbody>';
+
+        const files = res.data.files || [];
+        
+        if (files.length > 0) {
+            files.forEach(f => {
+                const icon = f.is_dir ? '📁' : '📄';
+                const date = f.mod_time ? new Date(f.mod_time).toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'}) : '';
+                
+                html += `
+                    <tr id="file-${hostID}-${f.name}" onclick="window.handleSftpClick(${hostID}, '${f.name}', ${f.is_dir}, event)">
+                        <td class="col-check" style="display: ${activeTerminals[hostID].selectionMode ? 'table-cell' : 'none'}">
+                            <input type="checkbox" ${activeTerminals[hostID].selectedFiles?.has(f.name) ? 'checked' : ''} onchange="event.stopPropagation()">
+                        </td>
+                        <td style="width: 35px; padding-left: 10px; text-align: center;">${icon}</td>
+                        <td class="file-name" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-left: 5px;">${f.name}</td>
+                        <td style="width: 120px; color: #666; font-size: 11px; white-space: nowrap; text-align: right;">${date}</td>
+                        <td class="file-size" style="width: 80px; padding-right: 15px; text-align: right;">${f.is_dir ? '' : formatSize(f.size)}</td>
+                    </tr>`;
+            });
+        } else {
+            html += '<tr><td colspan="4" style="padding:15px; color:#666; text-align:center;">Directory is empty</td></tr>';
+        }
+        
+        html += '</tbody></table>';
+        listArea.innerHTML = html;
+        // Scroll to top when changing folder.
+        listArea.scrollTop = 0; 
+    } catch (e) {
+        listArea.innerHTML = `<div style="padding:15px; color:#ff5555;">Load failed: ${e.message}</div>`;
+        console.error(e);
+    }
+};
+
+window.goUp = function(hostID) {
+    let path = activeTerminals[hostID].currentPath || "/";
+    
+    // Remove the slash at the end, if there is one..
+    path = path.replace(/\/+$/, "");
+    
+    // Если путь пустой или уже корень, ничего не делаем
+    if (!path || path === "") {
+        window.loadFiles(hostID, "/");
+        return;
+    }
+
+    // We break the path, remove the last piece.
+    const parts = path.split('/').filter(Boolean);
+    parts.pop();
+    
+    // Let's put it back together. If the array is empty, it means we've reached the root.
+    const parentPath = "/" + parts.join('/');
+    
+    window.loadFiles(hostID, parentPath);
+};
+
+window.formatSize = function(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
+// Function for generating a clickable path.
+function renderBreadcrumbs(id, path) {
+    const container = document.getElementById(`path-${id}`);
+    if (!container) return;
+
+    const parts = path.split('/').filter(Boolean);
+    let currentAccumulatedPath = '';
+    
+    let html = `<span style="cursor:pointer; color:#00ff00;" onclick="window.loadFiles(${id}, '/')"><i class="fas fa-hdd"></i> /</span> `;
+    
+    parts.forEach((part, index) => {
+        currentAccumulatedPath += '/' + part;
+        const isLast = index === parts.length - 1;
+
+        // Escape the quotes in the onclick path to avoid breaking the html.
+        const safePath = currentAccumulatedPath.replace(/'/g, "\\'");
+        if (isLast) {
+            html += `<span style="color:#eee;">${part}</span>`;
+        } else {
+            html += `<span style="cursor:pointer; color:#00ff00;" onclick="window.loadFiles(${id}, '${currentAccumulatedPath}')">${part}</span> / `;
+        }
+    });
+    container.innerHTML = html;
+}
+
+window.toggleSftpSelectMode = function(hostID) {
+    const t = activeTerminals[hostID];
+    if (!t) return;
+    
+    t.selectionMode = !t.selectionMode;
+    
+    const mainToolbar = document.getElementById(`toolbar-main-${hostID}`);
+    const selectToolbar = document.getElementById(`toolbar-select-${hostID}`);
+    
+    if (t.selectionMode) {
+        mainToolbar.style.display = 'none';
+        selectToolbar.style.display = 'flex';
+        t.selectedFiles = new Set();
+    } else {
+        mainToolbar.style.display = 'flex';
+        selectToolbar.style.display = 'none';
+        t.selectedFiles.clear();
+    }
+    
+    // Redrawing the list to show/hide the checkbox column.
+    window.loadFiles(hostID, t.currentPath);
+    updateSelectCount(hostID);
+};
+
+window.handleSftpClick = function(hostID, name, isDir, event) {
+    const t = activeTerminals[hostID];
+    if (!t) return;
+    
+    if (t.selectionMode) {
+        const tr = document.getElementById(`file-${hostID}-${name}`);
+        const cb = tr.querySelector('input[type="checkbox"]');
+        
+        if (t.selectedFiles.has(name)) {
+            t.selectedFiles.delete(name);
+            tr.classList.remove('selected');
+            if(cb) cb.checked = false;
+        } else {
+            t.selectedFiles.add(name);
+            tr.classList.add('selected');
+            if(cb) cb.checked = true;
+        }
+        updateSelectCount(hostID);
+    } else {
+        if (isDir) {
+            let current = t.currentPath;
+            if (!current.endsWith('/')) current += '/';
+            window.loadFiles(hostID, current + name);
+        } else {
+            window.downloadFile(hostID, name);
+        }
+    }
+};
+
+function updateSelectCount(hostID) {
+    const t = activeTerminals[hostID];
+    const count = t && t.selectedFiles ? t.selectedFiles.size : 0;
+    const label = document.getElementById(`select-count-${hostID}`);
+    if (label) {
+        label.innerText = `Selected: ${count}`;
+        label.className = "select-count-text";
+    }
+}
+
+window.downloadFile = function(id, name) {
+    const t = activeTerminals[id];
+    if (!t) return;
+
+    const path = t.currentPath;
+    // We use path normalization to avoid double slashes.
+    const fullPath = path.endsWith('/') ? path + name : path + '/' + name;
+    const csrfToken = document.getElementById('csrf_token')?.value || "";
+
+    // Generating a URL with a token.
+    const params = new URLSearchParams({
+        host_id: id,
+        path: fullPath,
+        csrf_token: csrfToken
+    });
+
+    // Click on the link and the browser will start downloading.
+    window.location.href = `/sftp/download?${params.toString()}`;
+};
+
+window.downloadSelected = function(hostID) {
+    const t = activeTerminals[hostID];
+    if (!t || !t.selectedFiles || t.selectedFiles.size === 0) return;
+
+    const filesArray = Array.from(t.selectedFiles);
+    const csrfToken = document.getElementById('csrf_token')?.value || "";
+
+    // We collect all the parameters into a string.
+    const params = new URLSearchParams({
+        host_id: hostID,
+        parent_path: t.currentPath,
+        files: JSON.stringify(filesArray),
+        csrf_token: csrfToken
+    });
+
+    // This will force the mobile to open the native download manager.
+    window.location.href = `/sftp/download-zip?${params.toString()}`;
+
+    setTimeout(() => {
+        window.toggleSftpSelectMode(hostID);
+    }, 500);
+};
+
+window.handleUpload = async function(hostID, input) {
+    const files = input.files;
+    if (files.length === 0) return;
+
+    const t = activeTerminals[hostID];
+    const formData = new FormData();
+    formData.append('host_id', hostID);
+    formData.append('remote_path', t.currentPath);
+    formData.append('csrf_token', document.getElementById('csrf_token')?.value || "");
+
+    for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+    }
+
+    try {
+        const response = await fetch('/sftp/upload', {
+            method: 'POST',
+            body: formData
+        });
+        const res = await response.json();
+        if (res.success) {
+            window.loadFiles(hostID, t.currentPath);
+        } else {
+            alert("Upload failed: " + res.message);
+        }
+    } catch (e) {
+        console.error(e);
+        showErrorModal("Upload error");
+    }
+    input.value = '';
+};

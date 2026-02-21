@@ -59,6 +59,13 @@ func SetupRoutes(h *handlers.Handlers, m *middleware.Middleware, store *sessions
 	protected.HandleFunc("/ws/ssh", h.SSHWebsocketHandler)
 	protected.HandleFunc("/ssh/terminate", h.TerminateSessionHandler).Methods("POST")
 
+	// SFTP
+	sfpts := protected.PathPrefix("/sftp").Subrouter()
+	sfpts.HandleFunc("/list", h.GetFilesHandler).Methods("GET")
+	sfpts.HandleFunc("/download", h.DownloadFileHandler).Methods("GET")
+	sfpts.HandleFunc("/download-zip", h.DownloadZipHandler).Methods("GET")
+	sfpts.HandleFunc("/upload", h.UploadHandler).Methods("POST")
+
 	// --- Processing 404 ---
 	r.NotFoundHandler = http.HandlerFunc(h.NotFoundHandler)
 

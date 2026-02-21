@@ -22,13 +22,13 @@
                         <div class="btn-group" id="actions-{{.ID}}">
                             
                             <button id="resume-{{.ID}}" 
-                                    onclick="connectToHost({{.ID}}, '{{.Name}}')" 
+                                    onclick="connectToHost({{.ID}}, '{{.Name}}', '{{.Settings.DefaultPath}}')" 
                                     style="background-color: #17a2b8; color: white; {{if not $isActive}}display: none;{{end}}">
                                 Open Terminal
                             </button>
 
                             <button class="std-btn std-btn-{{.ID}}" 
-                                    onclick="connectToHost({{.ID}}, '{{.Name}}')" 
+                                    onclick="connectToHost({{.ID}}, '{{.Name}}', '{{.Settings.DefaultPath}}')" 
                                     style="background-color: #28a745; color: white; {{if $isActive}}display: none;{{end}}">
                                 Connect
                             </button>
@@ -89,6 +89,11 @@
                     <input type="password" id="hostPassword" name="password">
                 </div>
 
+                <div id="sftpSettings">
+                    <label for="defaultPath">SFTP Start Path:</label>
+                    <input type="text" id="defaultPath" name="default_path" placeholder=".../user" class="form-control">
+                </div>
+
                 <br><button type="submit">Save</button>
             </form>
         </div>
@@ -98,7 +103,7 @@
         <div class="modal-content">
             <span class="close" onclick="closeDeleteModal()">&times;</span>
             <h2>Delete Host</h2>
-            <p>Enter the host name to confirm deletion:</p>
+            <p>Type <strong><span id="targetHostName"></span></strong> to confirm:</p>
             <input type="text" id="deleteHostName" placeholder="Host Name">
             <button id="confirmDeleteBtn" disabled onclick="confirmDelete()">Delete</button>
         </div>
