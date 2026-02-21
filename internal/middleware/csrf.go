@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"ssh_manager/internal/utils"
+	"strings"
 
 	"github.com/gorilla/sessions"
 )
@@ -46,39 +47,40 @@ func CSRFMiddleware(store *sessions.CookieStore) func(next http.Handler) http.Ha
 func CSRFValidationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
-			// Reading the request body
-			body, err := io.ReadAll(r.Body)
-			if err != nil {
-				utils.SendJSONResponse(w, false, "Failed to read request body", nil)
-				return
-			}
-
-			// Restoring the request body
-			r.Body = io.NopCloser(bytes.NewBuffer(body))
-
-			// Obtaining a CSRF token from a context
 			expectedToken, ok := r.Context().Value("csrf_token").(string)
 			if !ok {
 				utils.SendJSONResponse(w, false, "CSRF token not found", nil)
 				return
 			}
 
-			// Data Decoding
-			var requestData map[string]string
-			err = json.Unmarshal(body, &requestData)
-			if err != nil {
-				utils.SendJSONResponse(w, false, "Invalid request data", nil)
-				return
+			var actualToken string
+			contentType := r.Header.Get("Content-Type")
+
+			// If it's JSON.
+			if strings.Contains(contentType, "application/json") {
+				body, _ := io.ReadAll(r.Body)
+				r.Body = io.NopCloser(bytes.NewBuffer(body)) // Returning the body to the handler.
+
+				var requestData map[string]interface{}
+				if err := json.Unmarshal(body, &requestData); err == nil {
+					actualToken, _ = requestData["csrf_token"].(string)
+				}
+
+				// If it is a file upload or a regular form.
+			} else if strings.Contains(contentType, "multipart/form-data") ||
+				strings.Contains(contentType, "application/x-www-form-urlencoded") {
+
+				// For multipart, we parse the form to get the value.
+				if err := r.ParseMultipartForm(32 << 20); err == nil {
+					actualToken = r.FormValue("csrf_token")
+				}
 			}
 
-			// CSRF token verification
-			actualToken, exists := requestData["csrf_token"]
-			if !exists || actualToken != expectedToken {
+			if actualToken == "" || actualToken != expectedToken {
 				utils.SendJSONResponse(w, false, "Invalid CSRF token", nil)
 				return
 			}
 		}
-
 		next.ServeHTTP(w, r)
 	})
 }
