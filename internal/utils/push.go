@@ -26,25 +26,21 @@ func SendNotification(sub models.PushSubscription, title, body string) error {
 	}
 
 	s := &webpush.Subscription{
-		Endpoint: sub.Endpoint,
+		Endpoint: strings.TrimSpace(sub.Endpoint),
 		Keys: webpush.Keys{
-			P256dh: sub.P256dh,
-			Auth:   sub.Auth,
+			P256dh: strings.TrimSpace(sub.P256dh),
+			Auth:   strings.TrimSpace(sub.Auth),
 		},
 	}
 
-	publicKey := strings.TrimSpace(GetEnv("VAPID_PUBLIC_KEY", ""))
-	privateKey := strings.TrimSpace(GetEnv("VAPID_PRIVATE_KEY", ""))
-	rawSub := strings.TrimSpace(GetEnv("VAPID_SUBSCRIBER_EMAIL", "admin@example.com"))
-	subscriber := strings.Trim(rawSub, " \"\n\r\t")
+	publicKey := strings.Trim(GetEnv("VAPID_PUBLIC_KEY", ""), " \t\n\r\"")
+	privateKey := strings.Trim(GetEnv("VAPID_PRIVATE_KEY", ""), " \t\n\r\"")
+	subscriber := strings.Trim(GetEnv("VAPID_SUBSCRIBER_EMAIL", "admin@example.com"), " \t\n\r\"")
 
 	ttl, _ := strconv.Atoi(GetEnv("PUSH_TTL", "3600"))
 	if ttl == 0 {
 		ttl = 3600
 	}
-
-	subscriber = strings.TrimPrefix(subscriber, "mailto:")
-	subscriber = "mailto:" + subscriber
 
 	// Sending a request to the Push server (Google/Mozilla/Apple).
 	resp, err := webpush.SendNotification(payload, s, &webpush.Options{
