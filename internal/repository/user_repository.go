@@ -33,3 +33,44 @@ func (r *UserRepository) UpdatePassword(ctx context.Context, userID int, passwor
 	_, err := r.DB.ExecContext(ctx, query, passwordHash, userID)
 	return err
 }
+
+// AddSubscription keeps the notification subscription.
+func (r *UserRepository) AddSubscription(ctx context.Context, sub models.PushSubscription) error {
+	query := Rebind(`INSERT INTO user_subscriptions (user_id, endpoint, p256dh, auth) VALUES ($1, $2, $3, $4) 
+                     ON CONFLICT (endpoint) DO NOTHING`)
+	_, err := r.DB.ExecContext(ctx, query, sub.UserID, sub.Endpoint, sub.P256dh, sub.Auth)
+	return err
+}
+
+// RemoveSubscription deletes a subscription for a specific user.
+func (r *UserRepository) RemoveSubscription(ctx context.Context, userID int) error {
+	query := Rebind(`DELETE FROM user_subscriptions WHERE user_id = $1`)
+	_, err := r.DB.ExecContext(ctx, query, userID)
+	return err
+}
+
+// GetUserSubscriptions returns all active push subscriptions for a user.
+func (r *UserRepository) GetUserSubscriptions(ctx context.Context, userID int) ([]models.PushSubscription, error) {
+	var subs []models.PushSubscription
+	query := Rebind(`SELECT user_id, endpoint, p256dh, auth FROM user_subscriptions WHERE user_id = $1`)
+
+	rows, err := r.DB.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var s models.PushSubscription
+		if err := rows.Scan(&s.UserID, &s.Endpoint, &s.P256dh, &s.Auth); err != nil {
+			return nil, err
+		}
+		subs = append(subs, s)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return subs, nil
+}
