@@ -35,16 +35,16 @@ func SendNotification(sub models.PushSubscription, title, body string) error {
 
 	publicKey := strings.TrimSpace(GetEnv("VAPID_PUBLIC_KEY", ""))
 	privateKey := strings.TrimSpace(GetEnv("VAPID_PRIVATE_KEY", ""))
-	subscriber := strings.TrimSpace(GetEnv("VAPID_SUBSCRIBER_EMAIL", "admin@example.com"))
+	rawSub := strings.TrimSpace(GetEnv("VAPID_SUBSCRIBER_EMAIL", "admin@example.com"))
+	subscriber := strings.Trim(rawSub, " \"\n\r\t")
 
 	ttl, _ := strconv.Atoi(GetEnv("PUSH_TTL", "3600"))
 	if ttl == 0 {
 		ttl = 3600
 	}
 
-	if subscriber != "" && !strings.HasPrefix(subscriber, "mailto:") {
-		subscriber = "mailto:" + subscriber
-	}
+	subscriber = strings.TrimPrefix(subscriber, "mailto:")
+	subscriber = "mailto:" + subscriber
 
 	// Sending a request to the Push server (Google/Mozilla/Apple).
 	resp, err := webpush.SendNotification(payload, s, &webpush.Options{
