@@ -2,6 +2,9 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
 	"ssh_manager/internal/models"
 	"strconv"
 	"strings"
@@ -12,10 +15,15 @@ import (
 // SendNotification sending notifications to clients.
 func SendNotification(sub models.PushSubscription, title, body string) error {
 	// Telling the browser what exactly to show.
-	payload, _ := json.Marshal(map[string]string{
+	payload, err := json.Marshal(map[string]string{
 		"title": title,
 		"body":  body,
 	})
+
+	if err != nil {
+		LogErrorf("[PUSH] Payload marshal error: %v", err)
+		return err
+	}
 
 	s := &webpush.Subscription{
 		Endpoint: sub.Endpoint,
@@ -47,8 +55,18 @@ func SendNotification(sub models.PushSubscription, title, body string) error {
 	})
 
 	if err != nil {
+		LogErrorf("[PUSH] Network or Library error: %v", err)
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		errDetail := fmt.Errorf("status: %d, body: %s", resp.StatusCode, string(respBody))
+
+		LogErrorf("[PUSH] Server rejected request: %v", errDetail)
+
+		return errDetail
+	}
 	return nil
 }
