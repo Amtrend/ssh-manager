@@ -13,6 +13,9 @@ A modern, lightweight, and secure web-based SSH connection manager. Manage your 
 * **High Security:** Both SSH Private Keys and Host Passwords are encrypted using **AES-256 GCM** before being stored in the database.
 * **Zero Config:** Automatically initializes tables and creates an admin account on the first run.
 * **Smart Cleanup:** Automatically closes abandoned SSH sessions based on a configurable timeout.
+* **PWA Support:** Install the application on your Desktop (Windows/Linux/macOS) or Mobile (Android/iOS) as a standalone app with its own icon and splash screen.
+* **Real-time Push Notifications:** Receive instant alerts about:
+    * Automatic cleanup of abandoned sessions.
 
 ---
 
@@ -87,6 +90,19 @@ docker run -d \
 
 ---
 
+## Progressive Web App (PWA) & Notifications
+
+The service is fully compatible with **PWA standards**. You can "install" it via your browser (Chrome/Edge/Safari) to use it as a native-like application.
+
+### Push Notifications Setup
+To enable Push Notifications, you need to provide **VAPID keys**. You can generate them using the following command (or any online tool):
+
+```bash
+# Example using npx (web-push)
+npx web-push generate-vapid-keys
+
+---
+
 ## Environment Variables
 
 | Variable | Description | Default |
@@ -100,6 +116,9 @@ docker run -d \
 | `CLEANUP_INTERVAL` | Cleanup frequency for dead sessions (e.g., 2m) | `2m` |
 | `INITIAL_ADMIN_USER` | Admin username on first startup | `admin` |
 | `INITIAL_ADMIN_PASSWORD` | Admin password on first startup | `admin` |
+| `VAPID_PUBLIC_KEY` | Public key for Push Notifications (Base64) | - |
+| `VAPID_PRIVATE_KEY` | Private key for Push Notifications (Base64) | - |
+| `VAPID_EMAIL` | Contact email for Push Notifications (e.g., mailto:admin@example.com) | - |
 
 ### How to Generate Keys?
 
@@ -153,3 +172,5 @@ The built-in file manager allows you to:
 * **CSRF Protection:** Secure tokens are required for all file operations (Upload/Download).
 * **Multiplexing:** SFTP operations run over the same encrypted SSH tunnel as your terminal, reducing the attack surface.
 * **Access Protection:** All user passwords are hashed using `bcrypt`.
+* **Push Privacy:** Notifications are sent using VAPID (Voluntary Application Server Identification), ensuring that only your server can send messages to your browser.
+* **Offline Ready:** While the core functionality requires a network, the PWA manifest ensures the app shell loads instantly.
