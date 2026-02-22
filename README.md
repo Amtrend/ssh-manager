@@ -100,6 +100,11 @@ To enable Push Notifications, you need to provide **VAPID keys**. You can genera
 ```bash
 # Example using npx (web-push)
 npx web-push generate-vapid-keys
+```
+
+Once generated, add `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` to your environment variables. 
+
+> **Tip:** You can also configure `PUSH_TTL` (Time To Live). This defines how long (in seconds) the push server (Google/Apple) will keep the message if the user's device is offline. Default is `3600` (1 hour).
 
 ---
 
@@ -119,6 +124,7 @@ npx web-push generate-vapid-keys
 | `VAPID_PUBLIC_KEY` | Public key for Push Notifications (Base64) | - |
 | `VAPID_PRIVATE_KEY` | Private key for Push Notifications (Base64) | - |
 | `VAPID_EMAIL` | Contact email for Push Notifications (e.g., mailto:admin@example.com) | - |
+| `PUSH_TTL` | Time-to-live for notifications in seconds | `3600` |
 
 ### How to Generate Keys?
 
