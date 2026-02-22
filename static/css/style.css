@@ -215,6 +215,67 @@ button[onclick="openPasswordModal()"] {
     background-color: #444;
 }
 
+/* PUSH NOTIFICATIONS */
+.profile-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #333;
+}
+
+.notification-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #252526;
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    height: 22px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #3c3c3c;
+    transition: .3s;
+    border-radius: 22px;
+    border: 1px solid #444;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #d4d4d4;
+    transition: .3s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #007acc;
+    border-color: #007acc;
+}
+
+input:checked + .slider:before {
+    transform: translateX(24px);
+    background-color: white;
+}
+
 /* KEY MANAGEMENT (SSH Keys) */
 .keys-container { 
     max-width: 600px; 

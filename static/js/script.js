@@ -32,8 +32,19 @@ window.closeLogoutModal = function() { document.getElementById('logoutModal').st
 window.confirmLogout = function() { window.location.href = '/logout'; };
 
 window.closeModal = function(id) {
-    const m = document.getElementById(id) || document.querySelector('.modal[style*="block"]');
-    if (m) m.style.display = 'none';
+    // We are looking for a specific ID or any open modal.
+    const m = id ? document.getElementById(id) : document.querySelector('.modal[style*="block"]');
+    
+    if (m) {
+        m.style.display = 'none';
+        
+        // If the push modal was closed (by ID or if it was active)
+        // and permission was not received, reset the switcher.
+        if ((id === 'pushModal' || m.id === 'pushModal') && Notification.permission !== 'granted') {
+            const toggle = document.getElementById('pushToggle');
+            if (toggle) toggle.checked = false;
+        }
+    }
 };
 
 window.openPasswordModal = function() {
@@ -97,6 +108,135 @@ if (passwordForm) {
             })
         }).then(r => r.json()).then(data => data.success ? location.reload() : showErrorModal(data.message));
     });
+}
+
+/* --- NOTIFICATIONS --- */
+async function clearBadge() {
+    if ('clearAppBadge' in navigator) {
+        try {
+            await navigator.clearAppBadge();
+        } catch (e) {
+            console.error("Badge clear error:", e);
+        }
+    }
+}
+
+clearBadge();
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
+const pushToggle = document.getElementById('pushToggle');
+
+// Synchronization
+async function syncPushStatus() {
+    if (!pushToggle) return;
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        pushToggle.checked = !!subscription;
+    } catch (e) {
+        console.error("Sync error:", e);
+    }
+}
+
+if (pushToggle) {
+    navigator.serviceWorker.register('/sw.js').then(() => syncPushStatus());
+
+    pushToggle.addEventListener('click', async function(e) {
+        e.preventDefault();
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+
+        if (subscription) {
+            // Unsubscribe
+            const csrf = document.getElementById('global_csrf_token')?.value;
+            const res = await fetch('/profile/push/unsubscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ csrf_token: csrf })
+            });
+            const data = await res.json();
+            
+            if (res.ok && data.success !== false) {
+                await subscription.unsubscribe();
+                this.checked = false;
+            } else {
+                showErrorModal("Unsubscribe failed: " + (data.message || "CSRF error"));
+            }
+        } else {
+            // Subscribe
+            if (Notification.permission === 'granted') {
+                await subscribeUser();
+            } else if (Notification.permission === 'denied') {
+                showErrorModal("Blocked in browser settings.");
+            } else {
+                document.getElementById('pushModal').style.display = 'block';
+            }
+        }
+    });
+}
+
+async function subscribeUser() {
+    const vapidKeyElement = document.getElementById('vapid_public_key');
+    const VAPID_PUBLIC_KEY = vapidKeyElement?.value;
+
+    if (!VAPID_PUBLIC_KEY) {
+        console.error("VAPID Public Key not found on this page.");
+        showErrorModal("Notification configuration error.");
+        return;
+    }
+
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+
+        const csrf = document.getElementById('global_csrf_token')?.value;
+        
+        const subData = {
+            endpoint: subscription.endpoint,
+            p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh')))),
+            auth: btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth')))),
+            csrf_token: csrf 
+        };
+
+        const res = await fetch('/profile/push/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(subData)
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            pushToggle.checked = true;
+        } else {
+            showErrorModal(data.message);
+            await subscription.unsubscribe();
+            pushToggle.checked = false;
+        }
+    } catch (e) {
+        console.error("Push Error:", e);
+        showErrorModal(e.message);
+        pushToggle.checked = false;
+    }
+}
+
+async function requestPushPermission() {
+    closeModal('pushModal');
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') await subscribeUser();
 }
 
 /* --- HOST AND KEY MANAGEMENT --- */

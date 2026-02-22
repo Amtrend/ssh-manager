@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"ssh_manager/internal/models"
 	"ssh_manager/internal/utils"
 
 	"golang.org/x/crypto/bcrypt"
@@ -18,9 +19,10 @@ func (h *Handlers) ProfileHandler(w http.ResponseWriter, r *http.Request) {
 
 	username, _ := session.Values[utils.UsernameKey].(string)
 	utils.RenderTemplate(w, "profile.html", map[string]interface{}{
-		"Title":    "Profile",
-		"Username": username,
-		"ShowMenu": true,
+		"Title":          "Profile",
+		"Username":       username,
+		"ShowMenu":       true,
+		"VapidPublicKey": utils.GetEnv("VAPID_PUBLIC_KEY", ""),
 	}, r)
 }
 
@@ -82,4 +84,57 @@ func (h *Handlers) UpdatePasswordHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	utils.SendJSONResponse(w, true, "Password updated successfully", nil)
+}
+
+// SubscribePushHandler subscribes the user to push notifications.
+func (h *Handlers) SubscribePushHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Endpoint string `json:"endpoint"`
+		P256dh   string `json:"p256dh"`
+		Auth     string `json:"auth"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.SendJSONResponse(w, false, "Invalid request data", nil)
+		return
+	}
+
+	session, _ := h.Store.Get(r, utils.SessionName)
+	userID, ok := session.Values[utils.UserIDKey].(int)
+	if !ok {
+		utils.SendJSONResponse(w, false, "Unauthorized", nil)
+		return
+	}
+
+	sub := models.PushSubscription{
+		UserID:   userID,
+		Endpoint: req.Endpoint,
+		P256dh:   req.P256dh,
+		Auth:     req.Auth,
+	}
+
+	if err := h.UserRepo.AddSubscription(r.Context(), sub); err != nil {
+		utils.LogErrorf("Error streaming file", err)
+		utils.SendJSONResponse(w, false, "Database error", nil)
+		return
+	}
+
+	utils.SendJSONResponse(w, true, "Subscribed successfully", nil)
+}
+
+// UnsubscribePushHandler unsubscribe from push notifications.
+func (h *Handlers) UnsubscribePushHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := h.Store.Get(r, utils.SessionName)
+	userID, ok := session.Values[utils.UserIDKey].(int)
+	if !ok {
+		utils.SendJSONResponse(w, false, "Unauthorized", nil)
+		return
+	}
+
+	if err := h.UserRepo.RemoveSubscription(r.Context(), userID); err != nil {
+		utils.SendJSONResponse(w, false, "Database error", nil)
+		return
+	}
+
+	utils.SendJSONResponse(w, true, "Unsubscribed successfully", nil)
 }

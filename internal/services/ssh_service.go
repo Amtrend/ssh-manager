@@ -8,6 +8,7 @@ import (
 	"ssh_manager/internal/encryption"
 	"ssh_manager/internal/models"
 	"ssh_manager/internal/repository"
+	"ssh_manager/internal/utils"
 	"sync"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 type SSHService struct {
 	HostRepo        *repository.HostRepository
 	KeyRepo         *repository.KeyRepository
+	UserRepo        *repository.UserRepository
 	Sessions        map[int]map[int]*models.ActiveSession // [userID][hostID]
 	Mu              sync.RWMutex
 	CleanupInterval time.Duration
@@ -26,10 +28,11 @@ type SSHService struct {
 }
 
 // NewSSHService creates a new instance of SSHService and starts it.
-func NewSSHService(hRepo *repository.HostRepository, kRepo *repository.KeyRepository, cleanupInterval, sessionTimeout time.Duration) *SSHService {
+func NewSSHService(hRepo *repository.HostRepository, kRepo *repository.KeyRepository, uRepo *repository.UserRepository, cleanupInterval, sessionTimeout time.Duration) *SSHService {
 	s := &SSHService{
 		HostRepo:        hRepo,
 		KeyRepo:         kRepo,
+		UserRepo:        uRepo,
 		Sessions:        make(map[int]map[int]*models.ActiveSession),
 		CleanupInterval: cleanupInterval,
 		SessionTimeout:  sessionTimeout,
@@ -237,6 +240,9 @@ func (s *SSHService) startCleaner() {
 
 				if isExpired {
 					log.Printf("[CLEANER] Removing session: User %d, Host %d", userID, hostID)
+
+					// Send push notifications
+					go s.notifySessionTimeout(userID, hostID)
 					// We call the version without a lock
 					s.terminateSessionUnsafe(userID, hostID)
 				}
@@ -259,4 +265,41 @@ func (s *SSHService) GetActiveHostIDs(userID int) map[int]bool {
 		}
 	}
 	return activeIDs
+}
+
+// notifySessionTimeout sends push notifications to the user about closing the session.
+func (s *SSHService) notifySessionTimeout(userID, hostID int) {
+	// Context for working with the database (background)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	host, err := s.HostRepo.GetByID(ctx, hostID, userID)
+	hostName := "Unknown Host"
+	if err == nil {
+		hostName = host.Name
+	}
+
+	// We receive user subscriptions
+	subs, err := s.UserRepo.GetUserSubscriptions(ctx, userID)
+	if err != nil {
+		utils.LogErrorf("[PUSH] Failed to get subscriptions", err, "userID", userID)
+		return
+	}
+
+	if len(subs) == 0 {
+		return
+	}
+
+	// We send a notification to all user devices
+	title := "The session has ended."
+	message := fmt.Sprintf("The SSH session with host [%s] timed out.", hostName)
+
+	for _, sub := range subs {
+		// We run the sending in the background so as not to slow down the cleaner.
+		go func(subscription models.PushSubscription) {
+			if err := utils.SendNotification(subscription, title, message); err != nil {
+				utils.LogErrorf("[PUSH] Send error: ", err, "userID", userID)
+			}
+		}(sub)
+	}
 }

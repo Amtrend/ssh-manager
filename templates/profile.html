@@ -4,6 +4,9 @@
 <div class="profile-container">
     <h1>Profile</h1>
 
+    <input type="hidden" id="global_csrf_token" value="{{.CSRFToken}}">
+    <input type="hidden" id="vapid_public_key" value="{{.VapidPublicKey}}">
+
     <form id="usernameForm">
         <input type="hidden" id="csrf_token_username" value="{{.CSRFToken}}">
         <label for="username">Username:</label>
@@ -27,6 +30,30 @@
             </form>
         </div>
     </div>
+
+    <div class="profile-section">
+        <p>Notifications</p>
+        <div class="notification-panel">
+            <span>Browser Push Notifications</span>
+            <label class="switch">
+                <input type="checkbox" id="pushToggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <div id="pushModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('pushModal')">&times;</span>
+            <h3>Enable Notifications</h3>
+            <p>You will receive alerts when:</p>
+            <ul>
+                <li>Sessions are closed by timeout</li>
+            </ul>
+            <button onclick="requestPushPermission()">Enable Now</button>
+        </div>
+    </div>
+
 </div>
 
 {{end}}

@@ -107,7 +107,7 @@ func main() {
 	uRepo := &repository.UserRepository{DB: db}
 	hRepo := &repository.HostRepository{DB: db}
 	kRepo := &repository.KeyRepository{DB: db}
-	sshService := services.NewSSHService(hRepo, kRepo, cleanupInterval, sessionTimeout)
+	sshService := services.NewSSHService(hRepo, kRepo, uRepo, cleanupInterval, sessionTimeout)
 
 	handler := &handlers.Handlers{
 		UserRepo: uRepo, KeyRepo: kRepo, HostRepo: hRepo,

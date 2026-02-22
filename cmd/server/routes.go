@@ -21,6 +21,11 @@ func SetupRoutes(h *handlers.Handlers, m *middleware.Middleware, store *sessions
 	// --- Statics ---
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
+	// Service worker
+	r.HandleFunc("/sw.js", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./static/js/sw.js")
+	})
+
 	// --- Public routes ---
 	r.HandleFunc("/login", h.LoginHandler).Methods("GET")
 	r.HandleFunc("/login", h.LoginPostHandler).Methods("POST")
@@ -35,9 +40,12 @@ func SetupRoutes(h *handlers.Handlers, m *middleware.Middleware, store *sessions
 	protected.HandleFunc("/logout", h.LogoutHandler).Methods("GET")
 
 	// Profile
-	protected.HandleFunc("/profile", h.ProfileHandler).Methods("GET")
-	protected.HandleFunc("/profile/update-username", h.UpdateUsernameHandler).Methods("POST")
-	protected.HandleFunc("/profile/update-password", h.UpdatePasswordHandler).Methods("POST")
+	profile := protected.PathPrefix("/profile").Subrouter()
+	profile.HandleFunc("", h.ProfileHandler).Methods("GET")
+	profile.HandleFunc("/update-username", h.UpdateUsernameHandler).Methods("POST")
+	profile.HandleFunc("/update-password", h.UpdatePasswordHandler).Methods("POST")
+	profile.HandleFunc("/push/subscribe", h.SubscribePushHandler).Methods("POST")
+	profile.HandleFunc("/push/unsubscribe", h.UnsubscribePushHandler).Methods("POST")
 
 	// Keys
 	keys := protected.PathPrefix("/keys").Subrouter()
