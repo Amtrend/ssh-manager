@@ -128,13 +128,15 @@ th {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.8);
+    overflow-y: auto; 
+    padding: 20px 0;
 }
 
 .modal-content {
     background-color: #2d2d2d;
-    margin: 10% auto;
+    margin: 20px auto;
     padding: 20px;
-    width: 100%;
+    width: 90%;
     max-width: 500px;
     border-radius: 8px;
     position: relative;
@@ -402,14 +404,51 @@ button[onclick="openPasswordModal()"] {
     cursor: pointer;
 }
 
+.terminal.xterm .xterm-viewport::-webkit-scrollbar,
+#terminal-container .xterm-viewport::-webkit-scrollbar,
+.term-body .xterm-viewport::-webkit-scrollbar {
+    width: 8px !important;
+    height: 8px !important;
+    display: block !important;
+}
+
+.terminal.xterm .xterm-viewport::-webkit-scrollbar-track,
+#terminal-container .xterm-viewport::-webkit-scrollbar-track {
+    background: #1e1e1e !important;
+}
+
+.terminal.xterm .xterm-viewport::-webkit-scrollbar-thumb,
+#terminal-container .xterm-viewport::-webkit-scrollbar-thumb {
+    background: #444 !important;
+    border-radius: 4px !important;
+}
+
+.terminal.xterm .xterm-viewport::-webkit-scrollbar-thumb:hover,
+#terminal-container .xterm-viewport::-webkit-scrollbar-thumb:hover {
+    background: #555 !important;
+}
+
+
 .term-body {
-    scrollbar-color: #888 #bdbdbd;
-    scrollbar-width: thin;
+    scrollbar-width: thin !important;
+    scrollbar-color: #444 #1e1e1e !important;
 }
 
 @media screen and (max-width: 768px) {
     th, td {
         padding: 10px;
+    }
+
+    .modal-content {
+        margin: 10px auto;
+        padding: 15px;
+        width: 95%;
+    }
+    
+    .modal-content input, 
+    .modal-content select {
+        padding: 12px;
+        font-size: 16px;
     }
 
     .std-btn:not(:last-child) {
