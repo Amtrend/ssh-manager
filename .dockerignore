@@ -10,3 +10,4 @@ docker-compose.yml
 .vscode/
 *.log
 notes.txt
+gen.go
