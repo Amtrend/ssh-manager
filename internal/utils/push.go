@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"ssh_manager/internal/models"
 	"strconv"
+	"strings"
 
 	"github.com/SherClockHolmes/webpush-go"
 )
@@ -26,11 +27,15 @@ func SendNotification(sub models.PushSubscription, title, body string) error {
 
 	publicKey := GetEnv("VAPID_PUBLIC_KEY", "")
 	privateKey := GetEnv("VAPID_PRIVATE_KEY", "")
-	subscriber := GetEnv("VAPID_SUBSCRIBER_EMAIL", "mailto:admin@example.com")
+	subscriber := GetEnv("VAPID_SUBSCRIBER_EMAIL", "admin@example.com")
 
 	ttl, _ := strconv.Atoi(GetEnv("PUSH_TTL", "3600"))
 	if ttl == 0 {
 		ttl = 3600
+	}
+
+	if subscriber != "" && !strings.HasPrefix(subscriber, "mailto:") {
+		subscriber = "mailto:" + subscriber
 	}
 
 	// Sending a request to the Push server (Google/Mozilla/Apple).
