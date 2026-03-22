@@ -171,7 +171,7 @@ func (h *Handlers) DownloadZipHandler(w http.ResponseWriter, r *http.Request) {
 		remoteFullPath := path.Join(parentPath, name)
 
 		// Recursively adding files/folders.
-		err := h.addSftpToZip(sftpClient, zipWriter, remoteFullPath, "")
+		err := h.addSftpToZip(sftpClient, zipWriter, remoteFullPath, "", 0)
 		if err != nil {
 			utils.LogErrorf("Error adding to zip", err, "path", remoteFullPath)
 		}
@@ -243,8 +243,13 @@ func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // addSftpToZip Helper function for recursively adding files and folders from SFTP to ZIP.
-func (h *Handlers) addSftpToZip(client *sftp.Client, zw *zip.Writer, remotePath, baseInZip string) error {
-	info, err := client.Stat(remotePath)
+func (h *Handlers) addSftpToZip(client *sftp.Client, zw *zip.Writer, remotePath, baseInZip string, depth int) error {
+	// recursion fuse
+	if depth > 10 {
+		return fmt.Errorf("max depth reached at %s", remotePath)
+	}
+
+	info, err := client.Lstat(remotePath)
 	if err != nil {
 		return err
 	}
@@ -282,7 +287,7 @@ func (h *Handlers) addSftpToZip(client *sftp.Client, zw *zip.Writer, remotePath,
 		}
 		for _, f := range subFiles {
 			// we pass the current path in the archive as a new parent.
-			err = h.addSftpToZip(client, zw, path.Join(remotePath, f.Name()), header.Name)
+			err = h.addSftpToZip(client, zw, path.Join(remotePath, f.Name()), header.Name, depth+1)
 			if err != nil {
 				return err
 			}
