@@ -2,6 +2,7 @@ package utils
 
 import (
 	"net/http"
+	"ssh_manager"
 	"text/template"
 )
 
@@ -14,7 +15,7 @@ func InitTemplates() {
 
 	for _, page := range pages {
 		// Parse once at startup
-		t, err := template.ParseFiles("templates/base.html", "templates/"+page)
+		t, err := template.ParseFS(ssh_manager.TemplateFS, "templates/base.html", "templates/"+page)
 		if err != nil {
 			panic("Error loading template " + page + ": " + err.Error())
 		}

@@ -13,19 +13,17 @@ COPY . .
 # Building a statically compiled binary
 ARG TARGETOS
 ARG TARGETARCH
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o ssh-manager ./cmd/server
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -a -installsuffix cgo -o ssh-manager ./cmd/server
 
 FROM alpine:latest
 
 # Install certificates (needed for secure connections) and time zones
 RUN apk --no-cache add ca-certificates tzdata
 
-WORKDIR /root/
+WORKDIR /app
 
 # Сopy only what is needed for work
 COPY --from=builder /app/ssh-manager .
-COPY --from=builder /app/templates ./templates
-COPY --from=builder /app/static ./static
 
 # Create a folder for the SQLite database
 RUN mkdir ./data

@@ -2,8 +2,10 @@ package main
 
 import (
 	"net/http"
+	"ssh_manager"
 	"ssh_manager/internal/handlers"
 	"ssh_manager/internal/middleware"
+	"ssh_manager/internal/utils"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -19,11 +21,19 @@ func SetupRoutes(h *handlers.Handlers, m *middleware.Middleware, store *sessions
 	r.Use(middleware.CSRFMiddleware(store))
 
 	// --- Statics ---
-	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	staticHandler := http.FileServer(http.FS(ssh_manager.StaticFS))
+	r.PathPrefix("/static/").Handler(staticHandler)
 
 	// Service worker
 	r.HandleFunc("/sw.js", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./static/js/sw.js")
+		data, err := ssh_manager.StaticFS.ReadFile("static/js/sw.js")
+		if err != nil {
+			utils.LogErrorf("SW file not found in embed: %v", err)
+			http.Error(w, "Not found", 404)
+			return
+		}
+		w.Header().Set("Content-Type", "application/javascript")
+		w.Write(data)
 	})
 
 	// --- Public routes ---
