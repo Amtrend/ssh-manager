@@ -529,7 +529,7 @@ window.connectToHost = function(id, name, defaultPath = "/") {
                 <div class="term-toolbar-group">
                     <button class="term-btn term-btn-arrow" onclick="sendSpecialKey(${id}, 'Left')">&larr;</button>
                     <button class="term-btn term-btn-arrow" onclick="sendSpecialKey(${id}, 'Up')">&uarr;</button>
-                    <button class="term-btn term-btn-arrow" onclick="sendSpecialKey(${id}, 'Down')">&uarr;</button>
+                    <button class="term-btn term-btn-arrow" onclick="sendSpecialKey(${id}, 'Down')">&darr;</button>
                     <button class="term-btn term-btn-arrow" onclick="sendSpecialKey(${id}, 'Right')">&rarr;</button>
                 </div>
                 <div class="term-divider"></div>
