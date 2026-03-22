@@ -14,8 +14,8 @@
         <tbody>
             {{range .Hosts}}
                 <tr data-host-id="{{.ID}}">
-                    <td>{{.Name}}</td>
-                    <td>{{.Address}}</td>
+                    <td class="address-column">{{.Name}}</td>
+                    <td class="address-column">{{.Address}}</td>
                     <td>{{.Username}}</td>
                     <td class="actions-cell">
                         {{ $isActive := index $.ActiveIDs .ID }}
@@ -48,7 +48,7 @@
                 </tr>
             {{else}}
                 <tr>
-                    <td colspan="5">No hosts found</td>
+                    <td colspan="4" style="text-align: center;">No hosts found</td>
                 </tr>
             {{end}}
         </tbody>
