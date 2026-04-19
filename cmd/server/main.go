@@ -86,12 +86,16 @@ func main() {
 	sessionTimeout := utils.GetDurationEnv("SESSION_TIMEOUT", "10m")
 
 	// Sessions
+	secureCookie := false
+	if utils.GetEnv("APP_ENV", "debug") == "prod" {
+		secureCookie = true
+	}
 	store := sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
 	store.Options = &sessions.Options{
 		Path:     "/",
 		MaxAge:   3600 * 24,
 		HttpOnly: true,
-		Secure:   false, // В проде на HTTPS ставь true
+		Secure:   secureCookie,
 		SameSite: http.SameSiteLaxMode,
 	}
 
