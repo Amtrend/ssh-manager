@@ -112,8 +112,8 @@ if (passwordForm) {
 
 /* --- NOTIFICATIONS --- */
 async function clearBadge() {
-    if ('clearAppBadge' in navigator) {
-        navigator.clearAppBadge().catch(e => console.error("Badge clear error:", e));
+    if (navigator.clearAppBadge) {
+        navigator.clearAppBadge().catch(() => {});
     }
 
     const csrf = document.getElementById('global_csrf_token')?.value;
@@ -823,27 +823,19 @@ window.pasteToTerminal = function(id) {
     const data = activeTerminals[id];
     if (!data || !data.term) return;
 
-    const xtermTextarea = data.term.textarea;
-
-    if (!xtermTextarea) {
-        data.term.focus();
-        return;
-    }
-
-    xtermTextarea.focus();
-
-    // calling the system menu
-    try {
-        document.execCommand('paste');
-    } catch (err) {
-    }
-
     if (navigator.clipboard && navigator.clipboard.readText) {
         navigator.clipboard.readText().then(text => {
             if (text && data.ws.readyState === WebSocket.OPEN) {
                 data.ws.send(text);
+                data.term.focus();
             }
-        }).catch(() => {});
+        }).catch(err => {
+            console.error("Clipboard access denied:", err);
+            data.term.focus();
+        });
+    } else {
+        data.term.focus();
+        document.execCommand('paste');
     }
 };
 

@@ -3,31 +3,35 @@ self.addEventListener('fetch', (event) => {
 });
 
 self.addEventListener('push', (event) => {
-    if (event.data) {
-        let data;
-        try {
-            data = event.data.json();
-        } catch (e) {
-            data = { title: 'SSH Manager', body: event.data.text(), badge: 1 };
-        }
+    if (!event.data) return;
 
-        if (data.badge !== undefined && 'setAppBadge' in navigator) {
-            navigator.setAppBadge(data.badge).catch(err => console.error(err));
-        }
-
-        const options = {
-            body: data.body,
-            icon: '/static/img/icon-192.png',
-            badge: '/static/img/icon-192.png',
-            requireInteraction: true,
-            tag: 'session-timeout-' + Date.now(),
-            data: { url: data.url || '/' }
-        };
-
-        event.waitUntil(
-            self.registration.showNotification(data.title, options)
-        );
+    let data;
+    try {
+        data = event.data.json();
+    } catch (e) {
+        data = { title: 'SSH Manager', body: event.data.text(), badge: 1 };
     }
+
+    const unreadCount = parseInt(data.badge);
+    const promises = [];
+
+    if (navigator.setAppBadge) {
+        if (unreadCount && unreadCount > 0) {
+            promises.push(navigator.setAppBadge(unreadCount));
+        } else {
+            promises.push(navigator.clearAppBadge());
+        }
+    }
+
+    const options = {
+        body: data.body,
+        icon: '/static/img/icon-192.png',
+        badge: '/static/img/icon-192.png',
+        data: { url: data.url || '/' }
+    };
+    promises.push(self.registration.showNotification(data.title, options));
+
+    event.waitUntil(Promise.all(promises));
 });
 
 self.addEventListener('notificationclick', (event) => {
@@ -35,11 +39,11 @@ self.addEventListener('notificationclick', (event) => {
 
     // When clicking on a notification, it makes sense to either decrease the counter, 
     // or clear it completely if we open the app.
-    if ('clearAppBadge' in navigator) {
-        navigator.clearAppBadge();
+    if (navigator.clearAppBadge) {
+        event.waitUntil(navigator.clearAppBadge());
     }
 
     event.waitUntil(
-        clients.openWindow(event.notification.data.url)
+        clients.openWindow(event.notification.data.url || '/')
     );
 });
