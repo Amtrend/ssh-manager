@@ -814,16 +814,31 @@ window.sendSpecialKey = function(id, key) {
     if (keyMap[key]) { data.ws.send(keyMap[key]); data.term.focus(); }
 };
 
-window.pasteToTerminal = async function(id) {
+window.pasteToTerminal = function(id) {
     const data = activeTerminals[id];
-    if (data && data.ws) {
-        try {
-            const text = await navigator.clipboard.readText();
+    if (!data || !data.term) return;
+
+    const xtermTextarea = data.term.textarea;
+
+    if (!xtermTextarea) {
+        data.term.focus();
+        return;
+    }
+
+    xtermTextarea.focus();
+
+    // calling the system menu
+    try {
+        document.execCommand('paste');
+    } catch (err) {
+    }
+
+    if (navigator.clipboard && navigator.clipboard.readText) {
+        navigator.clipboard.readText().then(text => {
             if (text && data.ws.readyState === WebSocket.OPEN) {
                 data.ws.send(text);
-                data.term.focus();
             }
-        } catch (err) { showErrorModal("Clipboard access denied"); }
+        }).catch(() => {});
     }
 };
 
