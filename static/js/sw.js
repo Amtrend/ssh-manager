@@ -12,26 +12,29 @@ self.addEventListener('push', (event) => {
         data = { title: 'SSH Manager', body: event.data.text(), badge: 1 };
     }
 
-    const unreadCount = parseInt(data.badge);
-    const promises = [];
+    const unreadCount = parseInt(data.badge) || 0;
 
-    if (navigator.setAppBadge) {
-        if (unreadCount && unreadCount > 0) {
-            promises.push(navigator.setAppBadge(unreadCount));
-        } else {
-            promises.push(navigator.clearAppBadge());
+    event.waitUntil((async () => {
+        if (navigator.setAppBadge) {
+            try {
+                if (unreadCount > 0) {
+                    await navigator.setAppBadge(unreadCount);
+                } else {
+                    await navigator.clearAppBadge();
+                }
+            } catch (err) {
+            }
         }
-    }
 
-    const options = {
-        body: data.body,
-        icon: '/static/img/icon-192.png',
-        badge: '/static/img/icon-192.png',
-        data: { url: data.url || '/' }
-    };
-    promises.push(self.registration.showNotification(data.title, options));
-
-    event.waitUntil(Promise.all(promises));
+        const options = {
+            body: data.body,
+            icon: '/static/img/icon-192.png',
+            badge: '/static/img/icon-192.png',
+            data: { url: data.url || '/' }
+        };
+        
+        await self.registration.showNotification(data.title, options);
+    })());
 });
 
 self.addEventListener('notificationclick', (event) => {
