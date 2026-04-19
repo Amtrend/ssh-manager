@@ -121,12 +121,15 @@ async function clearBadge() {
         await fetch('/profile/push/reset', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ csrf_token: csrf })
+            body: JSON.stringify({ csrf_token: csrf }),
+            keepalive: true
         });
     } catch (e) {
         console.error("Reset notification error:", e);
     }
 }
+
+window.addEventListener('focus', clearBadge);
 
 function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -938,8 +941,6 @@ function silentReconnect(id) {
 // Checking when come back in the tab
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-        clearBadge();
-
         Object.values(activeTerminals).forEach(t => {
             // If the tab is active and the socket is dead, we initiate a reconnect.
             const hostId = Object.keys(activeTerminals).find(key => activeTerminals[key] === t);
