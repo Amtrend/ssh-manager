@@ -14,8 +14,9 @@ A modern, lightweight, and secure web-based SSH connection manager. Manage your 
 * **Zero Config:** Automatically initializes tables and creates an admin account on the first run.
 * **Smart Cleanup:** Automatically closes abandoned SSH sessions based on a configurable timeout.
 * **PWA Support:** Install the application on your Desktop (Windows/Linux/macOS) or Mobile (Android/iOS) as a standalone app with its own icon and splash screen.
-* **Real-time Push Notifications:** Receive instant alerts about:
+* **Real-time and Smart Badge Push Notifications:** Receive instant alerts about:
     * Automatic cleanup of abandoned sessions.
+    * The app icon shows the exact number of unread session alerts. The counter automatically resets when you open the application.
 
 ---
 
@@ -34,6 +35,7 @@ services:
     volumes:
       - ./data:/root/data
     environment:
+      - APP_ENV=prod
       - DB_TYPE=sqlite
       - SESSION_SECRET=[CREATE_A_SECRET]
       - ENCRYPTION_KEY=[GENERATE_32_BYTE_HEX]
@@ -52,6 +54,7 @@ services:
     ports:
       - "8080:8080"
     environment:
+      - APP_ENV=prod
       - DB_TYPE=postgres
       - DB_HOST=db
       - DB_PORT=5432
@@ -79,6 +82,7 @@ services:
 ```bash
 docker run -d \
   -p 8080:8080 \
+  -e APP_ENV=prod \
   -e DB_TYPE=sqlite \
   -e ENCRYPTION_KEY=[YOUR_KEY] \
   -e SESSION_SECRET=[YOUR_SECRET] \
@@ -112,6 +116,7 @@ Once generated, add `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` to your environme
 
 | Variable | Description | Default |
 | --- | --- | --- |
+| `APP_ENV` | Application environment (`prod` or `debug`). If prod, cookies are sent only over HTTPS | `debug` |
 | `PORT` | Web interface port | `8080` |
 | `DB_TYPE` | Database type (`postgres` or `sqlite`) | `sqlite` |
 | `DB_NAME` | DB name (or filename for sqlite) | `ssh_manager` |
@@ -126,7 +131,16 @@ Once generated, add `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` to your environme
 | `VAPID_EMAIL` | Contact email for Push Notifications (e.g., mailto:admin@example.com) | - |
 | `PUSH_TTL` | Time-to-live for notifications in seconds | `3600` |
 
-### How to Generate Keys?
+## Security & Production Notes
+
+### Production vs Debug Mode
+The application uses the `APP_ENV` variable to handle session security:
+
+* **Debug Mode (`debug`):** Suitable for local testing. Cookies are sent over plain HTTP.
+* **Production Mode (`prod`):** **Recommended for public servers.** Enables the `Secure` flag on cookies. 
+    * **Note:** In `prod` mode, the app **requires HTTPS** (except on `localhost`). Accessing via IP or non-secure domain will result in login failure.
+
+### Key Generation
 
 To run the application, you need to generate two random keys using your terminal:
 
@@ -142,7 +156,6 @@ openssl rand -hex 32
 openssl rand -base64 32
 
 ```
-
 
 
 > **Warning:** Losing your `ENCRYPTION_KEY` will make it impossible to decrypt existing SSH keys stored in the database.
