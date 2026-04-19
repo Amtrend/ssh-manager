@@ -116,6 +116,10 @@ async function clearBadge() {
         navigator.clearAppBadge().catch(() => {});
     }
 
+    if ('caches' in window) {
+        caches.delete('badge-store').catch(() => {});
+    }
+
     const csrf = document.getElementById('global_csrf_token')?.value;
     try {
         await fetch('/profile/push/reset', {

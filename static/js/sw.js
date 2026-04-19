@@ -5,36 +5,30 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('push', (event) => {
     if (!event.data) return;
 
-    let data;
-    try {
-        data = event.data.json();
-    } catch (e) {
-        data = { title: 'SSH Manager', body: event.data.text(), badge: 1 };
-    }
+    const data = event.data.json();
+    const newBadge = parseInt(data.badge) || 0;
 
-    const unreadCount = parseInt(data.badge) || 0;
+    const task = caches.open('badge-store').then(async (cache) => {
+        const cacheKey = '/last-badge-count';
+        const cachedResponse = await cache.match(cacheKey);
+        const lastBadge = cachedResponse ? parseInt(await cachedResponse.text()) : 0;
 
-    event.waitUntil((async () => {
-        if (navigator.setAppBadge) {
-            try {
-                if (unreadCount > 0) {
-                    await navigator.setAppBadge(unreadCount);
-                } else {
-                    await navigator.clearAppBadge();
-                }
-            } catch (err) {
+        if (newBadge >= lastBadge || newBadge === 0) {
+            if (navigator.setAppBadge) {
+                navigator.setAppBadge(newBadge);
+                await cache.put(cacheKey, new Response(newBadge.toString()));
             }
         }
+    });
 
-        const options = {
-            body: data.body,
-            icon: '/static/img/icon-192.png',
-            badge: '/static/img/icon-192.png',
-            data: { url: data.url || '/' }
-        };
-        
-        await self.registration.showNotification(data.title, options);
-    })());
+    const notification = self.registration.showNotification(data.title, {
+        body: data.body,
+        icon: '/static/img/icon-192.png',
+        badge: '/static/img/icon-192.png',
+        data: { url: data.url || '/' }
+    });
+
+    event.waitUntil(Promise.all([task, notification]));
 });
 
 self.addEventListener('notificationclick', (event) => {
