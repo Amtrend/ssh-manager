@@ -56,6 +56,7 @@ func SetupRoutes(h *handlers.Handlers, m *middleware.Middleware, store *sessions
 	profile.HandleFunc("/update-password", h.UpdatePasswordHandler).Methods("POST")
 	profile.HandleFunc("/push/subscribe", h.SubscribePushHandler).Methods("POST")
 	profile.HandleFunc("/push/unsubscribe", h.UnsubscribePushHandler).Methods("POST")
+	profile.HandleFunc("/push/reset", h.ResetNotificationsHandler).Methods("POST")
 
 	// Keys
 	keys := protected.PathPrefix("/keys").Subrouter()

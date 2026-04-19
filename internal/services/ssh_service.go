@@ -273,6 +273,12 @@ func (s *SSHService) notifySessionTimeout(userID, hostID int) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	badgeCount, err := s.UserRepo.IncrementAndGetUnreadCount(ctx, userID)
+	if err != nil {
+		log.Printf("[PUSH] Database increment error: %v", err)
+		badgeCount = 1
+	}
+
 	host, err := s.HostRepo.GetByID(ctx, hostID, userID)
 	hostName := "Unknown Host"
 	if err == nil {
@@ -297,7 +303,7 @@ func (s *SSHService) notifySessionTimeout(userID, hostID int) {
 	for _, sub := range subs {
 		// We run the sending in the background so as not to slow down the cleaner.
 		go func(subscription models.PushSubscription) {
-			if err := utils.SendNotification(subscription, title, message); err != nil {
+			if err := utils.SendNotification(subscription, title, message, badgeCount); err != nil {
 				utils.LogErrorf("[PUSH] Send error: ", err, "userID", userID)
 			}
 		}(sub)

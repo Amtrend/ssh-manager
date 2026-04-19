@@ -113,15 +113,20 @@ if (passwordForm) {
 /* --- NOTIFICATIONS --- */
 async function clearBadge() {
     if ('clearAppBadge' in navigator) {
-        try {
-            await navigator.clearAppBadge();
-        } catch (e) {
-            console.error("Badge clear error:", e);
-        }
+        navigator.clearAppBadge().catch(e => console.error("Badge clear error:", e));
+    }
+
+    const csrf = document.getElementById('global_csrf_token')?.value;
+    try {
+        await fetch('/profile/push/reset', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ csrf_token: csrf })
+        });
+    } catch (e) {
+        console.error("Reset notification error:", e);
     }
 }
-
-clearBadge();
 
 function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -941,6 +946,8 @@ function silentReconnect(id) {
 // Checking when come back in the tab
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
+        clearBadge();
+
         Object.values(activeTerminals).forEach(t => {
             // If the tab is active and the socket is dead, we initiate a reconnect.
             const hostId = Object.keys(activeTerminals).find(key => activeTerminals[key] === t);
@@ -1233,3 +1240,4 @@ window.handleUpload = async function(hostID, input) {
     }
     input.value = '';
 };
+

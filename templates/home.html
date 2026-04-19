@@ -12,6 +12,7 @@
         </tr>
         </thead>
         <tbody>
+            <input type="hidden" id="global_csrf_token" value="{{.CSRFToken}}">
             {{range .Hosts}}
                 <tr data-host-id="{{.ID}}">
                     <td class="address-column">{{.Name}}</td>

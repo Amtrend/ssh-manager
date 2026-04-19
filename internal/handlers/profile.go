@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"ssh_manager/internal/models"
 	"ssh_manager/internal/utils"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -137,4 +139,26 @@ func (h *Handlers) UnsubscribePushHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	utils.SendJSONResponse(w, true, "Unsubscribed successfully", nil)
+}
+
+// ResetNotificationsHandler resetting the notification counter
+func (h *Handlers) ResetNotificationsHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := h.Store.Get(r, utils.SessionName)
+	userID, ok := session.Values[utils.UserIDKey].(int)
+	if !ok {
+		utils.SendJSONResponse(w, false, "Unauthorized", nil)
+		return
+	}
+
+	// call reset in db
+	ctx, calcel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer calcel()
+
+	if err := h.UserRepo.ResetUnreadCount(ctx, userID); err != nil {
+		utils.LogErrorf("Failed to reset notifications", err, "userID", userID)
+		utils.SendJSONResponse(w, false, "Database error", nil)
+		return
+	}
+
+	utils.SendJSONResponse(w, true, "Notifications reset successfully", nil)
 }

@@ -74,3 +74,26 @@ func (r *UserRepository) GetUserSubscriptions(ctx context.Context, userID int) (
 
 	return subs, nil
 }
+
+// ResetUnreadCount resets the counter of unread notifications
+func (r *UserRepository) ResetUnreadCount(ctx context.Context, userID int) error {
+	query := Rebind(`
+		INSERT INTO user_notification_counts (user_id, unread_count)
+		VALUES ($1, 0)
+		ON CONFLICT (user_id) DO UPDATE SET unread_count = 0`)
+	_, err := r.DB.ExecContext(ctx, query, userID)
+	return err
+}
+
+// IncrementAndGetUnreadCount adds a value to the unread notification counter
+func (r *UserRepository) IncrementAndGetUnreadCount(ctx context.Context, userID int) (int, error) {
+	var count int
+	query := Rebind(`
+		INSERT INTO user_notification_counts (user_id, unread_count)
+		VALUES ($1, 1)
+		ON CONFLICT (user_id)
+		DO UPDATE SET unread_count = user_notification_counts.unread_count + 1
+		RETURNING unread_count`)
+	err := r.DB.QueryRowContext(ctx, query, userID).Scan(&count)
+	return count, err
+}

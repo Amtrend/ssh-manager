@@ -8,7 +8,11 @@ self.addEventListener('push', (event) => {
         try {
             data = event.data.json();
         } catch (e) {
-            data = { title: 'SSH Manager', body: event.data.text() };
+            data = { title: 'SSH Manager', body: event.data.text(), badge: 1 };
+        }
+
+        if (data.badge !== undefined && 'setAppBadge' in navigator) {
+            navigator.setAppBadge(data.badge).catch(err => console.error(err));
         }
 
         const options = {
@@ -16,20 +20,9 @@ self.addEventListener('push', (event) => {
             icon: '/static/img/icon-192.png',
             badge: '/static/img/icon-192.png',
             requireInteraction: true,
+            tag: 'session-timeout-' + Date.now(),
             data: { url: data.url || '/' }
         };
-
-        // Badge control logic
-        if ('setAppBadge' in navigator) {
-            event.waitUntil(
-                // We get a list of all active notifications for this application.
-                self.registration.getNotifications().then(notifications => {
-                    // The new notification hasn't been created yet, so we'll take the current ones + 1
-                    const currentCount = notifications.length + 1;
-                    return navigator.setAppBadge(currentCount);
-                }).catch(err => console.error('Badge error:', err))
-            );
-        }
 
         event.waitUntil(
             self.registration.showNotification(data.title, options)

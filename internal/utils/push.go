@@ -13,11 +13,12 @@ import (
 )
 
 // SendNotification sending notifications to clients.
-func SendNotification(sub models.PushSubscription, title, body string) error {
+func SendNotification(sub models.PushSubscription, title, body string, badge int) error {
 	// Telling the browser what exactly to show.
-	payload, err := json.Marshal(map[string]string{
+	payload, err := json.Marshal(map[string]interface{}{
 		"title": title,
 		"body":  body,
+		"badge": badge,
 	})
 
 	if err != nil {
