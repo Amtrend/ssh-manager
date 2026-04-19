@@ -113,11 +113,7 @@ if (passwordForm) {
 /* --- NOTIFICATIONS --- */
 async function clearBadge() {
     if (navigator.clearAppBadge) {
-        navigator.clearAppBadge().catch(() => {});
-    }
-
-    if ('caches' in window) {
-        caches.delete('badge-store').catch(() => {});
+        navigator.clearAppBadge();
     }
 
     const csrf = document.getElementById('global_csrf_token')?.value;
