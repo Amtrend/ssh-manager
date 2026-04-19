@@ -44,7 +44,7 @@ jobs:
           OUTPUT: changelog.md
 
       - name: Build Changelog
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             ssh-manager-linux-amd64
